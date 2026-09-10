@@ -1,0 +1,49 @@
+{
+  "next_ids": {
+    "users": 1,
+    "orders": 1,
+    "deposits": 1
+  },
+  "users": [],
+  "orders": [],
+  "deposits": [],
+  "services": [
+    {
+      "id": 1,
+      "category": "Facebook",
+      "name": "Facebook Page Likes",
+      "rate": 1.5,
+      "min": 100,
+      "max": 10000,
+      "refill": false,
+      "provider_service_id": null
+    },
+    {
+      "id": 2,
+      "category": "Instagram",
+      "name": "Instagram Followers",
+      "rate": 2.0,
+      "min": 100,
+      "max": 10000,
+      "refill": true,
+      "provider_service_id": null
+    },
+    {
+      "id": 3,
+      "category": "TikTok",
+      "name": "TikTok Followers",
+      "rate": 1.8,
+      "min": 100,
+      "max": 20000,
+      "refill": true,
+      "provider_service_id": null
+    }
+  ],
+  "settings": {
+    "SITE_NAME": "Kairozen SMM",
+    "LOGO_URL": "",
+    "TELEGRAM_LINK": "",
+    "SUPPORT_EMAIL": "",
+    "CURRENCY": "USD"
+  }
+}
