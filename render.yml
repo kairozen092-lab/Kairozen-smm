@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: pvh-topup
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn server_v16:app --workers 1 --threads 8 --timeout 30 --bind 0.0.0.0:$PORT
+    autoDeploy: true
+    disk:
+      name: pvh-topup-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: DATA_DIR
+        value: /var/data
+      - key: ADMIN_PANEL_TOKEN
+        generateValue: true
+      - key: KHMERTOPUP_API_KEY
+        sync: false
+      - key: BAKONG_TOKEN
+        sync: false
+      - key: BAKONG_ACCOUNT_ID
+        sync: false
+      - key: BAKONG_MERCHANT_NAME
+        value: "PVH TOPUP"
+      - key: BAKONG_MERCHANT_CITY
+        value: "Phnom Penh"
+      - key: BAKONG_CURRENCY
+        value: "USD"
+      - key: BAKONG_PHONE
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: ADMIN_CHAT_ID
+        sync: false
+      - key: FRONTEND_PAYLOAD_KEY
+        generateValue: true
+      - key: SITE_PRIVATE
+        value: "false"
+      - key: SITE_USERNAME
+        sync: false
+      - key: SITE_PASSWORD
+        sync: false
