@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dashboard — Kairozen SMM</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --blue: #0088FF; --blue-2: #22c1ff; --green: #00E676;
+    --bg: #060b16; --surface: #0d1526; --surface-2: #121d33;
+    --line: rgba(148,180,255,.10); --line-soft: rgba(148,180,255,.06);
+    --ink: #eef3fb; --muted: #7c8bab; --muted-2: #566487;
+    --ok: #00E676; --warn: #ffb020; --err: #ff5470;
+    --r-lg: 20px; --r-md: 14px; --r-sm: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: Inter, system-ui, sans-serif;
+    background:
+      radial-gradient(1100px 480px at 12% -10%, rgba(0,136,255,.16), transparent 60%),
+      radial-gradient(900px 460px at 100% 0%, rgba(0,230,118,.09), transparent 55%),
+      var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, select { font-family: inherit; }
+  a { color: inherit; text-decoration: none; }
+  ::selection { background: rgba(0,136,255,.35); }
+
+  /* ---------- Topbar ---------- */
+  .topbar {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 22px; position: sticky; top: 0; z-index: 30;
+    background: rgba(6,11,22,.78); backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark {
+    width: 34px; height: 34px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-2));
+    display: grid; place-items: center; font-weight: 900; font-size: 13px; color: #06121f;
+    box-shadow: 0 6px 18px rgba(0,136,255,.35);
+  }
+  .brand-name { font-weight: 800; font-size: 15px; letter-spacing: -.01em; }
+  .topbar .spacer { flex: 1; }
+  .balance-chip {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface-2); border: 1px solid var(--line);
+    padding: 7px 8px 7px 14px; border-radius: 999px; font-size: 13px;
+  }
+  .balance-chip .amt { font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; }
+  .balance-chip .add {
+    width: 24px; height: 24px; border-radius: 50%; border: 0; cursor: pointer;
+    background: rgba(0,230,118,.15); color: var(--green); font-weight: 800; font-size: 15px;
+    display: grid; place-items: center; line-height: 1;
+  }
+  .icon-btn {
+    width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--surface-2); color: var(--muted); cursor: pointer;
+    display: grid; place-items: center;
+  }
+  .icon-btn:hover { color: var(--ink); border-color: rgba(148,180,255,.25); }
+
+  /* ---------- Shell ---------- */
+  .shell { display: grid; grid-template-columns: 216px 1fr; align-items: start; }
+  .rail {
+    padding: 18px 12px; position: sticky; top: 63px;
+    height: calc(100vh - 63px);
+    border-right: 1px solid var(--line);
+  }
+  .rail-item {
+    display: flex; align-items: center; gap: 11px;
+    padding: 10px 12px; border-radius: var(--r-sm); margin-bottom: 3px;
+    color: var(--muted); font-weight: 650; font-size: 13.5px; cursor: pointer; border: 0; background: transparent; width: 100%; text-align: left;
+  }
+  .rail-item svg { width: 18px; height: 18px; flex: none; opacity: .85; }
+  .rail-item:hover { background: var(--line-soft); color: var(--ink); }
+  .rail-item.on {
+    color: #fff; background: linear-gradient(135deg, rgba(0,136,255,.9), rgba(34,193,255,.75));
+    box-shadow: 0 8px 20px rgba(0,136,255,.25);
+  }
+  .rail-foot { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+
+  .main { padding: 26px 28px 60px; max-width: 880px; }
+  .page-head { margin-bottom: 20px; }
+  .page-head h1 { font-size: 21px; font-weight: 800; letter-spacing: -.01em; }
+  .page-head p { color: var(--muted); font-size: 13.5px; margin-top: 4px; }
+
+  /* ---------- Cards ---------- */
+  .card {
+    background: linear-gradient(180deg, var(--surface), var(--surface-2) 180%);
+    border: 1px solid var(--line); border-radius: var(--r-lg);
+    padding: 20px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 14px; font-weight: 750; margin-bottom: 14px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 7px; }
+  .field .hint { font-size: 11.5px; color: var(--muted-2); margin-top: 6px; }
+  input, select {
+    width: 100%; padding: 12px 13px; border-radius: var(--r-sm); border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink); font-size: 14px;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,136,255,.15); }
+  input::placeholder { color: var(--muted-2); }
+
+  .btn {
+    border: 0; border-radius: var(--r-sm); padding: 12px 18px; font-weight: 750; cursor: pointer;
+    background: linear-gradient(135deg, var(--blue), var(--blue-2)); color: #061423; font-size: 14px;
+    box-shadow: 0 10px 24px rgba(0,136,255,.28);
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn.ghost { background: var(--surface-2); color: var(--ink); box-shadow: none; border: 1px solid var(--line); }
+  .btn.sm { padding: 8px 12px; font-size: 12.5px; }
+  .btn:disabled { opacity: .4; cursor: default; box-shadow: none; }
+
+  /* Platform picker */
+  .platform-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .platform-pill {
+    display: flex; align-items: center; gap: 7px;
+    padding: 8px 13px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2);
+    font-size: 12.5px; font-weight: 650; color: var(--muted); cursor: pointer;
+  }
+  .platform-pill svg { width: 14px; height: 14px; }
+  .platform-pill.on { color: #fff; border-color: transparent; background: linear-gradient(135deg, var(--blue), var(--blue-2)); }
+
+  .service-list { display: flex; flex-direction: column; gap: 8px; max-height: 230px; overflow-y: auto; margin-bottom: 4px; }
+  .service-opt {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 11px 13px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--bg);
+    cursor: pointer; font-size: 13px;
+  }
+  .service-opt .name { font-weight: 650; }
+  .service-opt .rate { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .service-opt.on { border-color: var(--blue); background: rgba(0,136,255,.09); }
+
+  .cost-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-radius: var(--r-sm); background: rgba(0,230,118,.08);
+    border: 1px solid rgba(0,230,118,.2); margin-top: 6px; margin-bottom: 6px;
+  }
+  .cost-bar .l { font-size: 12.5px; color: var(--muted); }
+  .cost-bar .n { font-size: 18px; font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; }
+
+  /* Stat row */
+  .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+  .stat-card {
+    background: linear-gradient(180deg, var(--surface), var(--surface-2) 180%);
+    border: 1px solid var(--line); border-radius: var(--r-md); padding: 15px;
+  }
+  .stat-card .l { font-size: 11.5px; color: var(--muted); font-weight: 650; }
+  .stat-card .n { font-size: 20px; font-weight: 800; margin-top: 6px; font-variant-numeric: tabular-nums; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 11px 8px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+  th { color: var(--muted); font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+  tr:last-child td { border-bottom: 0; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 700;
+  }
+  .badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .badge.processing { background: rgba(255,176,32,.13); color: var(--warn); }
+  .badge.completed, .badge.paid { background: rgba(0,230,118,.13); color: var(--ok); }
+  .badge.pending { background: rgba(0,136,255,.13); color: var(--blue-2); }
+  .badge.failed, .badge.canceled { background: rgba(255,84,112,.13); color: var(--err); }
+  .badge.partial { background: rgba(255,176,32,.13); color: var(--warn); }
+
+  .empty { text-align: center; padding: 34px 10px; color: var(--muted); font-size: 13px; }
+  .empty svg { width: 34px; height: 34px; margin: 0 auto 10px; opacity: .5; }
+
+  /* Deposit / QR */
+  .qr-wrap { text-align: center; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line-soft); }
+  .qr-wrap img { width: 190px; height: 190px; border-radius: 14px; background: #fff; padding: 10px; }
+  .qr-status { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 12.5px; color: var(--muted); }
+  .dot-pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--blue-2); animation: pulse 1.1s infinite ease-in-out; }
+  @keyframes pulse { 0%,100% { opacity: .3; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.15); } }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(8px);
+    background: #101a2e; border: 1px solid var(--line); color: #fff; padding: 12px 18px; border-radius: 12px;
+    font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none; transition: .22s ease; z-index: 60; max-width: 90vw;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.err { border-color: rgba(255,84,112,.4); background: #29121b; }
+
+  @media (max-width: 780px) {
+    .shell { grid-template-columns: 1fr; }
+    .rail { position: static; height: auto; display: flex; overflow-x: auto; gap: 6px; border-right: 0; border-bottom: 1px solid var(--line); padding: 10px; }
+    .rail-item { width: auto; white-space: nowrap; }
+    .rail-foot { display: none; }
+    .stat-row { grid-template-columns: 1fr 1fr; }
+    .main { padding: 18px 16px 50px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">KZ</div>
+      <div class="brand-name" id="siteName">Kairozen SMM</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="balance-chip">
+      <span>Balance</span>
+      <span class="amt" id="balanceAmt">$0.00</span>
+      <button class="add" onclick="tab('wallet')" title="Add funds">+</button>
+    </div>
+    <button class="icon-btn" onclick="logout()" title="Log out">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+    </button>
+  </div>
+
+  <div class="shell">
+    <aside class="rail">
+      <button class="rail-item on" data-t="order" onclick="tab('order')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+        New order
+      </button>
+      <button class="rail-item" data-t="orders" onclick="tab('orders')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        My orders
+      </button>
+      <button class="rail-item" data-t="wallet" onclick="tab('wallet')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
+        Wallet
+      </button>
+      <div class="rail-foot">
+        <button class="rail-item" onclick="logout()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+          Log out
+        </button>
+      </div>
+    </aside>
+
+    <main class="main" id="main"></main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  let me = null, settings = {}, services = [], orders = [], deposits = [];
+  let selectedCategory = null, selectedService = null, depositTimer = null;
+
+  const ICONS = {
+    facebook: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12"/></svg>',
+    instagram: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
+    tiktok: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 5.3c-.8-.7-1.3-1.7-1.4-2.8h-3v13.3a2.6 2.6 0 1 1-1.9-2.5v-3.1a5.6 5.6 0 1 0 4.9 5.6V9.5a7.6 7.6 0 0 0 4.4 1.4V7.9c-1 0-1.9-.3-3-.9-.1-.1 0 0 0 0z"/></svg>',
+    youtube: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12s0-3.2-.4-4.7a2.9 2.9 0 0 0-2-2C17.9 5 12 5 12 5s-5.9 0-7.6.3a2.9 2.9 0 0 0-2 2C2 8.8 2 12 2 12s0 3.2.4 4.7a2.9 2.9 0 0 0 2 2C6.1 19 12 19 12 19s5.9 0 7.6-.3a2.9 2.9 0 0 0 2-2C22 15.2 22 12 22 12z"/><path d="M10 15V9l5.2 3z" fill="#060b16"/></svg>',
+    other: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
+  };
+  function iconFor(cat) {
+    const k = (cat || "").toLowerCase();
+    return ICONS[k] || ICONS.other;
+  }
+
+  function toast(msg, isErr) {
+    const el = document.getElementById("toast");
+    el.textContent = msg;
+    el.className = "toast show" + (isErr ? " err" : "");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => el.classList.remove("show"), 2800);
+  }
+  const money = n => "$" + Number(n || 0).toFixed(2);
+  const fmt = ts => ts ? new Date(ts * 1000).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  async function api(path, opts = {}) {
+    const r = await fetch("/api/" + path, {
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
+      ...opts,
+      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+    });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 401) { location.href = "/"; throw new Error("Not logged in"); }
+    if (!j.success) throw new Error(j.error || "Failed");
+    return j;
+  }
+
+  async function logout() {
+    await api("logout", { method: "POST" }).catch(() => {});
+    location.href = "/";
+  }
+
+  function paintBalance() {
+    document.getElementById("balanceAmt").textContent = money(me?.balance);
+  }
+
+  function tab(name) {
+    document.querySelectorAll(".rail-item[data-t]").forEach(b => b.classList.toggle("on", b.dataset.t === name));
+    if (name === "order") renderOrder();
+    if (name === "orders") renderOrdersTab();
+    if (name === "wallet") renderWallet();
+  }
+
+  /* ---------------- New order ---------------- */
+  function renderOrder() {
+    const cats = [...new Set(services.map(s => s.category))];
+    if (!selectedCategory) selectedCategory = cats[0];
+    document.getElementById("main").innerHTML = `
+      <div class="page-head">
+        <h1>Place a new order</h1>
+        <p>Pick a platform, choose a service, and set your quantity.</p>
+      </div>
+      <div class="card">
+        <h2>Platform</h2>
+        <div class="platform-row" id="platformRow"></div>
+        <h2>Service</h2>
+        <div class="service-list" id="serviceList"></div>
+
+        <div class="field" style="margin-top:16px">
+          <label>Link or username</label>
+          <input id="ordLink" placeholder="https://instagram.com/yourprofile" />
+        </div>
+        <div class="field">
+          <label>Quantity</label>
+          <input id="ordQty" type="number" placeholder="1000" />
+          <div class="hint" id="ordRange">&nbsp;</div>
+        </div>
+        <div class="cost-bar">
+          <span class="l">Estimated cost</span>
+          <span class="n" id="ordCost">$0.00</span>
+        </div>
+        <button class="btn" id="ordSubmit" onclick="placeOrder()">Submit order</button>
+      </div>`;
+    paintPlatforms(cats);
+    paintServices();
+    document.getElementById("ordQty").addEventListener("input", updateCost);
+  }
+
+  function paintPlatforms(cats) {
+    document.getElementById("platformRow").innerHTML = cats.map(c => `
+      <button class="platform-pill ${c === selectedCategory ? "on" : ""}" onclick="pickCategory('${esc(c)}')">
+        ${iconFor(c)}<span>${esc(c)}</span>
+      </button>`).join("");
+  }
+  function pickCategory(c) {
+    selectedCategory = c; selectedService = null;
+    document.querySelectorAll(".platform-pill").forEach(p => p.classList.toggle("on", p.textContent.trim() === c));
+    paintServices();
+  }
+  function paintServices() {
+    const list = services.filter(s => s.category === selectedCategory);
+    if (!selectedService || !list.find(s => s.id === selectedService)) selectedService = list[0]?.id;
+    document.getElementById("serviceList").innerHTML = list.map(s => `
+      <div class="service-opt ${s.id === selectedService ? "on" : ""}" onclick="pickService(${s.id})">
+        <span class="name">${esc(s.name)}</span>
+        <span class="rate">${money(s.rate)} / 1000</span>
+      </div>`).join("") || `<div class="empty">No services in this category yet.</div>`;
+    updateCost();
+  }
+  function pickService(id) {
+    selectedService = id;
+    document.querySelectorAll(".service-opt").forEach(el => el.classList.remove("on"));
+    paintServices();
+  }
+  function updateCost() {
+    const svc = services.find(s => s.id === selectedService);
+    const qty = Number(document.getElementById("ordQty")?.value || 0);
+    document.getElementById("ordRange").textContent = svc ? `Min ${svc.min.toLocaleString()} · Max ${svc.max.toLocaleString()}` : "";
+    const cost = svc ? (qty / 1000) * svc.rate : 0;
+    document.getElementById("ordCost").textContent = money(cost);
+  }
+  async function placeOrder() {
+    const link = document.getElementById("ordLink").value.trim();
+    const quantity = document.getElementById("ordQty").value;
+    const btn = document.getElementById("ordSubmit");
+    btn.disabled = true;
+    try {
+      const j = await api("orders", { method: "POST", body: { service_id: selectedService, link, quantity } });
+      me = j.user; paintBalance();
+      toast("Order placed successfully");
+      tab("orders");
+    } catch (e) { toast(e.message, true); }
+    finally { btn.disabled = false; }
+  }
+
+  /* ---------------- Orders tab ---------------- */
+  async function renderOrdersTab() {
+    document.getElementById("main").innerHTML = `
+      <div class="page-head"><h1>My orders</h1><p>Track the status of everything you've ordered.</p></div>
+      <div class="stat-row" id="orderStats"></div>
+      <div class="card"><h2>Order history</h2><div id="ordersBox"></div></div>`;
+    document.getElementById("ordersBox").innerHTML = `<div class="empty">Loading…</div>`;
+    try {
+      const j = await api("orders");
+      orders = j.orders || [];
+      const active = orders.filter(o => o.status === "processing").length;
+      const spent = orders.reduce((a, o) => a + Number(o.charge || 0), 0);
+      document.getElementById("orderStats").innerHTML = `
+        <div class="stat-card"><div class="l">Total orders</div><div class="n">${orders.length}</div></div>
+        <div class="stat-card"><div class="l">In progress</div><div class="n">${active}</div></div>
+        <div class="stat-card"><div class="l">Total spent</div><div class="n">${money(spent)}</div></div>`;
+      const box = document.getElementById("ordersBox");
+      if (!orders.length) {
+        box.innerHTML = `<div class="empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          No orders yet — place your first order to see it here.
+        </div>`;
+        return;
+      }
+      box.innerHTML = `<table>
+        <thead><tr><th>ID</th><th>Service</th><th>Qty</th><th>Charge</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>${orders.map(o => `
+          <tr>
+            <td>#${o.id}</td>
+            <td>${esc(o.service_name)}</td>
+            <td>${o.quantity.toLocaleString()}</td>
+            <td>${money(o.charge)}</td>
+            <td><span class="badge ${o.status}">${o.status}</span></td>
+            <td>${fmt(o.created_at)}</td>
+          </tr>`).join("")}
+        </tbody></table>`;
+    } catch (e) { toast(e.message, true); }
+  }
+
+  /* ---------------- Wallet ---------------- */
+  function renderWallet() {
+    clearInterval(depositTimer);
+    document.getElementById("main").innerHTML = `
+      <div class="page-head"><h1>Wallet</h1><p>Top up your balance to place orders.</p></div>
+      <div class="stat-row" style="grid-template-columns:1fr">
+        <div class="stat-card"><div class="l">Current balance</div><div class="n" style="font-size:26px">${money(me?.balance)}</div></div>
+      </div>
+      <div class="card">
+        <h2>Deposit via KHQR</h2>
+        <div class="field">
+          <label>Amount (USD)</label>
+          <input id="depAmount" type="number" min="0.5" step="0.01" placeholder="5.00" />
+        </div>
+        <button class="btn" onclick="startDeposit()">Generate QR code</button>
+        <div id="depBox"></div>
+      </div>
+      <div class="card">
+        <h2>Deposit history</h2>
+        <div id="depHistBox"><div class="empty">Loading…</div></div>
+      </div>`;
+    loadDepositHistory();
+  }
+
+  async function startDeposit() {
+    const amount = document.getElementById("depAmount").value;
+    try {
+      const j = await api("deposit", { method: "POST", body: { amount } });
+      document.getElementById("depBox").innerHTML = `
+        <div class="qr-wrap">
+          ${j.qr_image ? `<img src="${j.qr_image}" alt="KHQR code" />` : ""}
+          <div class="hint">${esc(j.hint || "")}</div>
+          <div class="qr-status"><span class="dot-pulse"></span><span id="depStatus">Waiting for payment…</span></div>
+        </div>`;
+      clearInterval(depositTimer);
+      depositTimer = setInterval(async () => {
+        try {
+          const c = await api("deposit/check", { method: "POST", body: { deposit_id: j.deposit_id } });
+          if (c.paid) {
+            clearInterval(depositTimer);
+            me = c.user; paintBalance();
+            document.getElementById("depStatus").textContent = "Payment received — balance updated";
+            toast("Deposit confirmed");
+            loadDepositHistory();
+          }
+        } catch (e) { /* keep polling silently */ }
+      }, 3000);
+    } catch (e) { toast(e.message, true); }
+  }
+
+  async function loadDepositHistory() {
+    try {
+      const j = await api("deposits");
+      deposits = j.deposits || [];
+      const box = document.getElementById("depHistBox");
+      if (!box) return;
+      if (!deposits.length) { box.innerHTML = `<div class="empty">No deposits yet.</div>`; return; }
+      box.innerHTML = `<table>
+        <thead><tr><th>ID</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>${deposits.map(d => `
+          <tr>
+            <td>#${d.id}</td>
+            <td>${money(d.amount)}</td>
+            <td><span class="badge ${d.status}">${d.status}</span></td>
+            <td>${fmt(d.created_at)}</td>
+          </tr>`).join("")}
+        </tbody></table>`;
+    } catch (e) { /* ignore */ }
+  }
+
+  /* ---------------- Boot ---------------- */
+  (async function boot() {
+    try {
+      const j = await api("me");
+      me = j.user; settings = j.settings || {};
+      if (settings.SITE_NAME) document.getElementById("siteName").textContent = settings.SITE_NAME;
+      paintBalance();
+      const s = await api("services");
+      services = s.services || [];
+      tab("order");
+    } catch (e) {
+      location.href = "/";
+    }
+  })();
+</script>
+</body>
+</html>
