@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin — Kairozen SMM</title>
+  <link rel="icon" href="/logo-mark.svg" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     :root {
@@ -95,7 +96,10 @@
 <body>
   <div id="loginView" class="login-wrap">
     <div class="login-card">
-      <h1>Kairozen Admin</h1>
+      <div style="text-align:center;margin-bottom:14px">
+        <img src="/logo.svg" alt="Kairozen" height="36" style="height:36px;width:auto" />
+      </div>
+      <h1>Admin</h1>
       <p>Sign in to manage users, orders and provider API.</p>
       <label>Username</label>
       <input id="admUser" value="admin" autocomplete="username" />
@@ -108,7 +112,8 @@
 
   <div id="appView" style="display:none">
     <div class="top">
-      <h1>Kairozen SMM · Admin</h1>
+      <img src="/logo.svg" alt="Kairozen SMM" height="26" style="height:26px;width:auto;filter:brightness(1.15)" />
+      <span style="font-size:12px;font-weight:700;color:var(--muted);margin-left:4px">Admin</span>
       <div class="spacer"></div>
       <span id="provBadge" class="badge pending">Provider</span>
       <button class="btn ghost sm" onclick="adminLogout()">Logout</button>
