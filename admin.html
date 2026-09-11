@@ -220,7 +220,6 @@
           <div class="toolbar">
             <button class="btn sm" onclick="tab('orders')">Manage orders</button>
             <button class="btn sm ghost" onclick="tab('services')">Edit services</button>
-            <button class="btn sm" onclick="tab('provider')">⚡ Sync provider services</button>
             <button class="btn sm ghost" onclick="tab('provider')">Provider API</button>
           </div>
           <p style="color:var(--muted);font-size:13px;line-height:1.5">
@@ -356,7 +355,6 @@
           <h2>Services</h2>
           <div class="toolbar">
             <button class="btn sm" onclick="addService()">+ Add service</button>
-            <button class="btn sm" onclick="quickSyncFromProvider()">⚡ Sync from provider</button>
             <button class="btn sm ghost" onclick="seedDefaults()">↺ Add missing starter services</button>
           </div>
           <table>
@@ -431,18 +429,6 @@
       } catch (e) { toast(e.message, true); }
     }
 
-    async function quickSyncFromProvider() {
-      if (!confirm("Sync all services from provider?\n• Update existing (matched by Provider SID)\n• Import new ones with 20% markup")) return;
-      try {
-        const r = await api("admin/provider/sync", {
-          method: "POST",
-          body: { markup_percent: 20, import_new: true },
-        });
-        toast(`Synced: +${r.imported} new, ${r.updated} updated (total ${r.total})`);
-        renderServices();
-      } catch (e) { toast(e.message, true); }
-    }
-
     async function renderSettings() {
       const r = await api("admin/settings");
       const s = r.settings || {};
@@ -491,29 +477,8 @@
             <code>PROVIDER_API_KEY</code> — your API key<br><br>
             Actions used: <code>services</code>, <code>add</code>, <code>status</code>
           </p>
-
-          <div class="panel" style="background:rgba(0,136,255,.08);border-color:rgba(0,136,255,.25);margin-bottom:14px">
-            <h2 style="margin-bottom:8px">⚡ Sync services from provider</h2>
-            <p style="color:var(--muted);font-size:13px;margin-bottom:12px;line-height:1.5">
-              ទាញយក catalogue ទាំងមូលពី provider រួច update rate / min / max នៃ services ដែលមាន provider SID រួចហើយ។
-              Services ថ្មីៗនឹងត្រូវ import ដោយស្វ័យប្រវត្តិ (markup ខាងក្រោម)។
-            </p>
-            <div class="toolbar">
-              <label style="margin:0;display:flex;align-items:center;gap:6px;color:var(--muted);font-weight:600">
-                Markup %
-                <input id="syncMarkup" type="number" value="20" style="margin:0;padding:6px;width:70px" />
-              </label>
-              <label style="margin:0;display:flex;align-items:center;gap:6px;color:var(--muted);font-weight:600">
-                <input type="checkbox" id="syncImportNew" checked style="width:auto;margin:0" />
-                Import new services too
-              </label>
-              <button class="btn sm" id="syncBtn" onclick="syncFromProvider()">Sync now</button>
-            </div>
-            <div id="syncResult" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
-          </div>
-
           <div class="toolbar">
-            <button class="btn sm ghost" onclick="loadProviderServices()">Fetch provider services (manual pick)</button>
+            <button class="btn sm" onclick="loadProviderServices()">Fetch provider services</button>
             <label style="margin:0;display:flex;align-items:center;gap:6px;color:var(--muted);font-weight:600">
               Markup %
               <input id="markupPct" type="number" value="20" style="margin:0;padding:6px;width:70px" />
@@ -584,29 +549,8 @@
       try {
         const r = await api("admin/provider/import", { method: "POST", body: { items, markup_percent } });
         toast(`Imported ${r.imported}, updated ${r.updated} (${r.total} total services)`);
+        tab("services");
       } catch (e) { toast(e.message, true); }
-    }
-
-    async function syncFromProvider() {
-      const btn = document.getElementById("syncBtn");
-      const box = document.getElementById("syncResult");
-      const markup_percent = parseFloat(document.getElementById("syncMarkup").value) || 0;
-      const import_new = document.getElementById("syncImportNew").checked;
-      btn.disabled = true;
-      box.textContent = "Syncing from provider…";
-      try {
-        const r = await api("admin/provider/sync", {
-          method: "POST",
-          body: { markup_percent, import_new },
-        });
-        box.innerHTML = `<span style="color:var(--ok)">Done.</span> Provider had <b>${r.provider_count}</b> services → updated <b>${r.updated}</b>, imported <b>${r.imported}</b>${r.skipped ? ", skipped " + r.skipped : ""} (our total: ${r.total}, markup ${r.markup_percent}%).`;
-        toast(`Synced: +${r.imported} new, ${r.updated} updated`);
-      } catch (e) {
-        box.innerHTML = `<span style="color:var(--err)">${esc(e.message)}</span>`;
-        toast(e.message, true);
-      } finally {
-        btn.disabled = false;
-      }
     }
 
     // boot
