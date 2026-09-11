@@ -247,11 +247,42 @@
     .empty { text-align: center; padding: 32px; color: var(--muted); }
 
     .qr-box {
-      text-align: center; padding: 18px;
-      background: #f8fafc; border-radius: 12px;
-      border: 1px dashed var(--line); margin-top: 12px;
+      text-align: center; padding: 20px 16px 18px;
+      background: #fff; border-radius: 16px;
+      border: 1px solid var(--line); margin-top: 14px;
+      box-shadow: 0 4px 20px rgba(0,136,255,.08);
     }
-    .qr-box img { max-width: 200px; margin: 0 auto 10px; border-radius: 8px; }
+    .qr-box .qr-frame {
+      display: inline-block; padding: 12px;
+      background: #fff; border-radius: 16px;
+      border: 2px solid #e8f4ff;
+      box-shadow: 0 2px 12px rgba(10,37,64,.06);
+      margin: 0 auto 12px;
+    }
+    .qr-box img {
+      display: block; width: 220px; height: 220px; max-width: 70vw;
+      border-radius: 10px; image-rendering: pixelated;
+    }
+    .qr-box .qr-amount {
+      font-weight: 800; font-size: 1.35rem; color: var(--blue); margin: 4px 0 2px;
+    }
+    .qr-box .qr-hint { font-size: 13px; color: var(--muted); line-height: 1.45; margin: 0 0 6px; }
+    .qr-box .qr-id { font-size: 12px; color: var(--muted); font-family: ui-monospace, monospace; }
+    .qr-box .qr-status {
+      margin-top: 12px; padding: 8px 14px; border-radius: 999px;
+      display: inline-flex; align-items: center; gap: 6px;
+      font-weight: 700; font-size: 13px;
+      background: #fef3c7; color: #b45309;
+    }
+    .qr-box .qr-status.ok { background: #dcfce7; color: #15803d; }
+    .qr-box .qr-pulse {
+      width: 8px; height: 8px; border-radius: 50%; background: currentColor;
+      animation: qrPulse 1.2s ease-in-out infinite;
+    }
+    @keyframes qrPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .35; transform: scale(.85); }
+    }
 
     .toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -389,53 +420,124 @@
     }
 
     async function renderApi() {
+      const key = user.api_key || "";
+      const origin = location.origin;
+      const actions = [
+        { a: "services", d: "List all services" },
+        { a: "balance", d: "Check your balance" },
+        { a: "add", d: "Place an order" },
+        { a: "status", d: "Check order status" },
+        { a: "multistatus", d: "Check multiple orders" },
+        { a: "refill", d: "Request refill" },
+        { a: "refill_status", d: "Refill status" },
+        { a: "cancel", d: "Cancel order(s)" },
+      ];
       document.getElementById("main").innerHTML = `
         <div class="panel">
-          <h2>Your API key</h2>
-          <p style="color:var(--muted);font-size:13px;margin-bottom:12px;line-height:1.55">
-            Use this key to place orders on our catalogue from your own site, bot or reseller panel —
-            same idea as a PerfectPanel-compatible SMM API.
-          </p>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
-            <input id="apiKeyBox" readonly value="${esc(user.api_key || "")}"
-              style="flex:1;min-width:220px;margin:0;font-family:ui-monospace,monospace;font-size:12px" />
-            <button class="btn sm ghost" onclick="copyApiKey()">Copy</button>
-            <button class="btn sm danger" onclick="regenApiKey()">Regenerate</button>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <div style="width:40px;height:40px;border-radius:12px;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center">${icon("key",20)}</div>
+            <div>
+              <strong style="font-size:16px;display:block">API Access</strong>
+              <span class="muted" style="font-size:12px">PerfectPanel-compatible reseller API</span>
+            </div>
           </div>
-          <h2 style="margin-top:4px">How to use it</h2>
-          <p style="color:var(--muted);font-size:13px;line-height:1.7">
-            Endpoint: <code class="mono">POST ${location.origin}/api/v2</code><br>
-            Send <code>key</code> + <code>action</code> as form fields or JSON body.
+          <p class="muted" style="margin:10px 0 14px;line-height:1.5;font-size:13px">
+            Use this key from your site, bot or another panel. Orders are charged to <b>your balance</b> — same as ordering here.
           </p>
-          <pre style="white-space:pre-wrap;font-size:12px;background:rgba(255,255,255,.04);padding:12px;border-radius:10px;margin-top:8px">curl -X POST ${location.origin}/api/v2 \\
-  -d key=${esc(user.api_key || "YOUR_KEY")} \\
-  -d action=services
 
-curl -X POST ${location.origin}/api/v2 \\
-  -d key=${esc(user.api_key || "YOUR_KEY")} \\
-  -d action=add -d service=1 -d link=https://... -d quantity=1000
+          <label style="margin-bottom:8px">${icon("key",14)} Your API key</label>
+          <div style="display:flex;gap:8px;align-items:stretch;flex-wrap:wrap;margin-bottom:16px">
+            <input id="apiKeyBox" readonly value="${esc(key)}"
+              style="flex:1;min-width:200px;margin:0;font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.02em;background:#f8fafc" />
+            <button class="btn-ghost" type="button" onclick="copyApiKey()" style="border-color:var(--blue);color:var(--blue)">${icon("link",14)} Copy</button>
+            <button class="btn-ghost" type="button" onclick="regenApiKey()" style="border-color:#fecaca;color:#b91c1c">${icon("hash",14)} Regenerate</button>
+          </div>
 
-curl -X POST ${location.origin}/api/v2 \\
-  -d key=${esc(user.api_key || "YOUR_KEY")} \\
-  -d action=status -d order=123
+          <label style="margin-bottom:8px">${icon("globe",14)} Endpoint</label>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+            <code id="apiEndpoint" class="mono" style="flex:1;min-width:180px;background:#f8fafc;border:1px solid var(--line);padding:12px 14px;border-radius:12px;font-size:12px;word-break:break-all">POST ${esc(origin)}/api/v2</code>
+            <button class="btn-ghost" type="button" onclick="copyText('${esc(origin)}/api/v2', 'Endpoint copied')">Copy URL</button>
+          </div>
 
-curl -X POST ${location.origin}/api/v2 \\
-  -d key=${esc(user.api_key || "YOUR_KEY")} \\
-  -d action=balance</pre>
-          <p style="color:var(--muted);font-size:12px;margin-top:10px">
-            Actions: <code>services</code> · <code>add</code> · <code>status</code> · <code>multistatus</code> ·
-            <code>refill</code> · <code>refill_status</code> · <code>cancel</code> · <code>balance</code>.
-            Same request/response shape as the standard SMM Panel API — any existing reseller script or bot
-            already built for that API works here unchanged.
-            Orders placed via the API are charged to this account's balance, exactly like orders placed here.
-          </p>
+          <label style="margin-bottom:8px">${icon("list",14)} Actions</label>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
+            ${actions.map(x => `
+              <span style="display:inline-flex;flex-direction:column;gap:2px;background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:110px">
+                <code class="mono" style="font-size:12px;font-weight:700;color:var(--blue)">${x.a}</code>
+                <span style="font-size:11px;color:var(--muted)">${x.d}</span>
+              </span>`).join("")}
+          </div>
+        </div>
+
+        <div class="panel">
+          <strong style="font-size:15px;display:block;margin-bottom:6px">Examples</strong>
+          <p class="muted" style="font-size:12px;margin-bottom:14px">Form body or JSON — both work. Tap Copy on any example.</p>
+          ${apiExampleBlock("exServices", "1. List services",
+            `curl -X POST ${origin}/api/v2 \\\n  -d key=${key || "YOUR_KEY"} \\\n  -d action=services`)}
+          ${apiExampleBlock("exAdd", "2. Place order (add)",
+            `curl -X POST ${origin}/api/v2 \\\n  -d key=${key || "YOUR_KEY"} \\\n  -d action=add \\\n  -d service=1 \\\n  -d link=https://tiktok.com/@user \\\n  -d quantity=1000`)}
+          ${apiExampleBlock("exStatus", "3. Order status",
+            `curl -X POST ${origin}/api/v2 \\\n  -d key=${key || "YOUR_KEY"} \\\n  -d action=status \\\n  -d order=123`)}
+          ${apiExampleBlock("exMulti", "4. Multiple order status",
+            `curl -X POST ${origin}/api/v2 \\\n  -d key=${key || "YOUR_KEY"} \\\n  -d action=multistatus \\\n  -d orders=123,456,789`)}
+          ${apiExampleBlock("exBal", "5. Check balance",
+            `curl -X POST ${origin}/api/v2 \\\n  -d key=${key || "YOUR_KEY"} \\\n  -d action=balance`)}
+          ${apiExampleBlock("exRefill", "6. Request refill",
+            `curl -X POST ${origin}/api/v2 \\\n  -d key=${key || "YOUR_KEY"} \\\n  -d action=refill \\\n  -d order=123`)}
+          ${apiExampleBlock("exRefillSt", "7. Refill status",
+            `curl -X POST ${origin}/api/v2 \\\n  -d key=${key || "YOUR_KEY"} \\\n  -d action=refill_status \\\n  -d refill=1`)}
+          ${apiExampleBlock("exCancel", "8. Cancel order(s)",
+            `curl -X POST ${origin}/api/v2 \\\n  -d key=${key || "YOUR_KEY"} \\\n  -d action=cancel \\\n  -d orders=123,456`)}
+          ${apiExampleBlock("exJson", "9. JSON body (place order)",
+            `curl -X POST ${origin}/api/v2 \\\n  -H "Content-Type: application/json" \\\n  -d '{"key":"${key || "YOUR_KEY"}","action":"add","service":1,"link":"https://tiktok.com/@user","quantity":1000}'`)}
+          ${apiExampleBlock("exJsonBal", "10. JSON body (balance)",
+            `curl -X POST ${origin}/api/v2 \\\n  -H "Content-Type: application/json" \\\n  -d '{"key":"${key || "YOUR_KEY"}","action":"balance"}'`)}
+        </div>
+
+        <div class="panel">
+          <strong style="font-size:15px;display:block;margin-bottom:8px">Response samples</strong>
+          <p class="muted" style="font-size:12px;margin-bottom:12px">Typical successful responses (HTTP 200). Errors return <code>{"error":"..."}</code>.</p>
+          ${apiExampleBlock("exResAdd", "add → order id",
+            `{"order": 123}`)}
+          ${apiExampleBlock("exResStatus", "status",
+            `{\n  "charge": "1.8000",\n  "start_count": "0",\n  "status": "In progress",\n  "remains": "1000",\n  "currency": "USD"\n}`)}
+          ${apiExampleBlock("exResBal", "balance",
+            `{\n  "balance": "25.5000",\n  "currency": "USD"\n}`)}
+          ${apiExampleBlock("exResServices", "services (array)",
+            `[\n  {\n    "service": 1,\n    "name": "TikTok Followers [Real + HQ]",\n    "type": "Default",\n    "category": "TikTok",\n    "rate": "1.80",\n    "min": "100",\n    "max": "50000",\n    "refill": true,\n    "cancel": false\n  }\n]`)}
         </div>`;
+    }
+
+    function apiExampleBlock(id, title, code) {
+      const safe = esc(code);
+      return `<div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px">
+          <span style="font-size:12px;font-weight:700;color:var(--muted)">${esc(title)}</span>
+          <button class="btn-ghost" type="button" style="padding:4px 8px;font-size:11px;flex:none"
+            onclick="copyText(document.getElementById('${id}').textContent, 'Copied')">Copy</button>
+        </div>
+        <pre id="${id}" style="white-space:pre-wrap;font-size:12px;background:#f8fafc;border:1px solid var(--line);padding:12px;border-radius:12px;margin:0;overflow-x:auto;line-height:1.45">${safe}</pre>
+      </div>`;
+    }
+
+    function copyText(text, msg) {
+      navigator.clipboard?.writeText(text).then(() => toast(msg || "Copied")).catch(() => {
+        try {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          ta.remove();
+          toast(msg || "Copied");
+        } catch (_) { toast("Copy failed", true); }
+      });
     }
 
     function copyApiKey() {
       const box = document.getElementById("apiKeyBox");
-      box.select();
-      navigator.clipboard?.writeText(box.value).then(() => toast("Copied")).catch(() => toast("Copy failed", true));
+      if (!box) return;
+      copyText(box.value, "API key copied");
     }
 
     async function regenApiKey() {
@@ -670,13 +772,16 @@ curl -X POST ${location.origin}/api/v2 \\
       try {
         const r = await api("deposit", { method: "POST", body: { amount } });
         currentDepId = r.deposit_id;
+        const qrInner = r.qr_image
+          ? `<div class="qr-frame"><img src="${r.qr_image}" alt="Payment QR" width="220" height="220" /></div>`
+          : `<div class="qr-frame" style="padding:28px;color:var(--blue)">${icon("smartphone",48)}</div>`;
         document.getElementById("depResult").innerHTML = `
           <div class="qr-box">
-            ${r.qr_image ? `<img src="${r.qr_image}" alt="QR" />` : `<div style="font-size:40px">${icon("smartphone",40)}</div>`}
-            <div style="font-weight:800;font-size:1.25rem;color:var(--blue);margin-top:8px">${money(r.amount)}</div>
-            <p class="muted" style="margin-top:6px">${esc(r.hint || "")}</p>
-            <p class="muted">#${r.deposit_id}${r.demo ? " · Demo" : ""}</p>
-            <p id="depStatus" style="margin-top:10px;font-weight:700;color:var(--warn)">Waiting…</p>
+            ${qrInner}
+            <div class="qr-amount">${money(r.amount)}</div>
+            <p class="qr-hint">${esc(r.hint || "Scan with Bakong bank app")}</p>
+            <p class="qr-id">#${r.deposit_id}${r.demo ? " · Demo mode" : ""}</p>
+            <div id="depStatus" class="qr-status"><span class="qr-pulse"></span> Waiting for payment…</div>
           </div>`;
         if (pollTimer) clearInterval(pollTimer);
         pollTimer = setInterval(checkDeposit, 2500);
@@ -693,7 +798,10 @@ curl -X POST ${location.origin}/api/v2 \\
           clearInterval(pollTimer); pollTimer = null;
           setUser(r.user);
           const st = document.getElementById("depStatus");
-          if (st) { st.style.color = "var(--ok)"; st.innerHTML = icon("check",14) + " Paid"; }
+          if (st) {
+            st.className = "qr-status ok";
+            st.innerHTML = icon("check", 14) + " Paid successfully";
+          }
           toast("Balance updated!");
           currentDepId = null;
         }

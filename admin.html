@@ -515,15 +515,22 @@
 
         <div class="panel">
           <h2>Reseller API — let others buy from us</h2>
-          <p style="color:var(--muted);font-size:13px;line-height:1.55">
-            Every registered user gets their own API key (visible on their dashboard → API tab).
-            Other panels/resellers can place orders on <b>our</b> catalogue the same way we buy from
-            our own provider above.<br><br>
-            Endpoint: <code class="mono">POST ${location.origin}/api/v2</code><br>
-            Params (form or JSON): <code>key</code>, <code>action</code>
-            (<code>services</code> · <code>add</code> · <code>status</code> · <code>multistatus</code> ·
-            <code>refill</code> · <code>refill_status</code> · <code>cancel</code> · <code>balance</code>),
-            plus <code>service</code>, <code>link</code>, <code>quantity</code> for <code>add</code>.
+          <p style="color:var(--muted);font-size:13px;line-height:1.55;margin-bottom:12px">
+            Every registered user gets their own API key (Dashboard → <b>API</b> tab).
+            Other panels can order from <b>our</b> catalogue the same way we buy from the provider above.
+          </p>
+          <div style="background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+            <div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:4px">ENDPOINT</div>
+            <code class="mono" style="font-size:13px">POST ${location.origin}/api/v2</code>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+            ${["services","add","status","multistatus","balance","refill","refill_status","cancel"].map(a =>
+              `<span class="badge pending" style="font-size:11px">${a}</span>`).join("")}
+          </div>
+          <p style="color:var(--muted);font-size:12px;line-height:1.55">
+            Params: <code>key</code> + <code>action</code> (form or JSON).
+            For <code>add</code>: also <code>service</code>, <code>link</code>, <code>quantity</code>.
+            Compatible with standard SMM Panel / PerfectPanel scripts.
           </p>
         </div>`;
     }

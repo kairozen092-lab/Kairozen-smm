@@ -640,15 +640,51 @@ def _get_khqr():
 
 
 def _qr_image_b64(qr_string: str) -> str:
+    """Generate a clean, high-contrast branded QR (blue modules, white bg)."""
     try:
         import base64
         import io
 
         import qrcode
+        from qrcode.constants import ERROR_CORRECT_M
+        from qrcode.image.styledpil import StyledPilImage
+        from qrcode.image.styles.moduledrawers import RoundedModuleDrawer
 
-        img = qrcode.make(qr_string)
+        qr = qrcode.QRCode(
+            version=None,
+            error_correction=ERROR_CORRECT_M,
+            box_size=12,
+            border=2,
+        )
+        qr.add_data(qr_string)
+        qr.make(fit=True)
+
+        # Prefer rounded modules when available; fall back to plain high-quality PNG
+        try:
+            img = qr.make_image(
+                image_factory=StyledPilImage,
+                module_drawer=RoundedModuleDrawer(radius_ratio=0.4),
+                fill_color="#0a2540",
+                back_color="#FFFFFF",
+            )
+        except Exception:
+            img = qr.make_image(fill_color="#0a2540", back_color="#FFFFFF")
+
+        # Pad on a soft card background for a cleaner look
+        try:
+            from PIL import Image
+
+            img = img.convert("RGBA")
+            pad = 24
+            w, h = img.size
+            canvas = Image.new("RGBA", (w + pad * 2, h + pad * 2), (255, 255, 255, 255))
+            canvas.paste(img, (pad, pad), img if img.mode == "RGBA" else None)
+            img = canvas.convert("RGB")
+        except Exception:
+            pass
+
         buf = io.BytesIO()
-        img.save(buf, format="PNG")
+        img.save(buf, format="PNG", optimize=True)
         return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
     except Exception:
         return ""
@@ -706,7 +742,10 @@ def deposit():
             pay_hint = f"KHQR error: {e}"
     else:
         # Demo: auto-credit after "check" for testing without Bakong
+        # Still generate a clean QR so the UI looks the same as production
+        demo_payload = f"KAIROZEN-DEMO|{dep_id}|{amount:.2f}|USD"
         dep["md5"] = f"demo-{dep_id}"
+        qr_image = _qr_image_b64(demo_payload) or qr_image
         _pending_qr[dep_id] = {
             "md5": dep["md5"],
             "amount": amount,
@@ -714,6 +753,7 @@ def deposit():
             "created": time.time(),
             "demo": True,
         }
+        pay_hint = "Demo mode — QR is for display only; balance credits in ~8s"
 
     data.setdefault("deposits", []).append(dep)
     save_db(data)
