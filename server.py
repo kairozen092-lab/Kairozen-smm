@@ -763,6 +763,9 @@ def deposit():
         qr_image=qr_image,
         hint=pay_hint,
         demo=not bool(khqr and BAKONG_ACCOUNT_ID),
+        merchant_name=BAKONG_MERCHANT_NAME or "Kairozen SMM",
+        merchant_city=BAKONG_MERCHANT_CITY or "Phnom Penh",
+        currency=BAKONG_CURRENCY or "USD",
     )
 
 

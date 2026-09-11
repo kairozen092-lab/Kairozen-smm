@@ -246,37 +246,73 @@
     .muted { color: var(--muted); font-size: 13px; }
     .empty { text-align: center; padding: 32px; color: var(--muted); }
 
-    .qr-box {
-      text-align: center; padding: 20px 16px 18px;
-      background: #fff; border-radius: 16px;
-      border: 1px solid var(--line); margin-top: 14px;
-      box-shadow: 0 4px 20px rgba(0,136,255,.08);
+    /* Official-style Bakong KHQR payment card */
+    .khqr-card {
+      max-width: 320px; margin: 16px auto 0;
+      background: #fff; border-radius: 16px; overflow: hidden;
+      box-shadow: 0 8px 32px rgba(227, 28, 35, .12), 0 2px 8px rgba(0,0,0,.06);
+      border: 1px solid #f0f0f0;
     }
-    .qr-box .qr-frame {
-      display: inline-block; padding: 12px;
-      background: #fff; border-radius: 16px;
-      border: 2px solid #e8f4ff;
-      box-shadow: 0 2px 12px rgba(10,37,64,.06);
-      margin: 0 auto 12px;
+    .khqr-card .khqr-top {
+      background: linear-gradient(135deg, #e31c23 0%, #c41017 100%);
+      color: #fff; padding: 14px 16px 12px; text-align: center;
     }
-    .qr-box img {
-      display: block; width: 220px; height: 220px; max-width: 70vw;
-      border-radius: 10px; image-rendering: pixelated;
+    .khqr-card .khqr-brand {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      font-weight: 800; font-size: 15px; letter-spacing: .02em;
     }
-    .qr-box .qr-amount {
-      font-weight: 800; font-size: 1.35rem; color: var(--blue); margin: 4px 0 2px;
+    .khqr-card .khqr-brand svg { flex: none; }
+    .khqr-card .khqr-tag {
+      display: inline-block; margin-top: 6px;
+      background: rgba(255,255,255,.2); padding: 2px 10px; border-radius: 999px;
+      font-size: 11px; font-weight: 700; letter-spacing: .08em;
     }
-    .qr-box .qr-hint { font-size: 13px; color: var(--muted); line-height: 1.45; margin: 0 0 6px; }
-    .qr-box .qr-id { font-size: 12px; color: var(--muted); font-family: ui-monospace, monospace; }
-    .qr-box .qr-status {
-      margin-top: 12px; padding: 8px 14px; border-radius: 999px;
+    .khqr-card .khqr-body {
+      padding: 16px 16px 8px; text-align: center;
+    }
+    .khqr-card .khqr-merchant {
+      font-weight: 700; font-size: 15px; color: #1a1a1a; margin-bottom: 4px;
+    }
+    .khqr-card .khqr-city {
+      font-size: 12px; color: #888; margin-bottom: 12px;
+    }
+    .khqr-card .khqr-frame {
+      display: inline-block; padding: 10px; background: #fff;
+      border: 1px solid #eee; border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.04);
+    }
+    .khqr-card .khqr-frame img {
+      display: block; width: 200px; height: 200px; max-width: 64vw;
+      border-radius: 4px; image-rendering: pixelated;
+    }
+    .khqr-card .khqr-amount-wrap {
+      margin: 14px 0 4px; padding: 10px 12px;
+      background: #fafafa; border-radius: 10px;
+    }
+    .khqr-card .khqr-amount {
+      font-weight: 800; font-size: 1.5rem; color: #e31c23; line-height: 1.2;
+    }
+    .khqr-card .khqr-currency {
+      font-size: 12px; font-weight: 700; color: #888; letter-spacing: .06em;
+    }
+    .khqr-card .khqr-bill {
+      font-size: 11px; color: #999; font-family: ui-monospace, monospace; margin-top: 6px;
+    }
+    .khqr-card .khqr-foot {
+      border-top: 1px solid #f0f0f0; padding: 12px 16px 14px; text-align: center;
+    }
+    .khqr-card .khqr-hint {
+      font-size: 12px; color: #666; line-height: 1.4; margin-bottom: 10px;
+    }
+    .khqr-card .khqr-status {
       display: inline-flex; align-items: center; gap: 6px;
-      font-weight: 700; font-size: 13px;
+      padding: 7px 14px; border-radius: 999px;
+      font-weight: 700; font-size: 12px;
       background: #fef3c7; color: #b45309;
     }
-    .qr-box .qr-status.ok { background: #dcfce7; color: #15803d; }
-    .qr-box .qr-pulse {
-      width: 8px; height: 8px; border-radius: 50%; background: currentColor;
+    .khqr-card .khqr-status.ok { background: #dcfce7; color: #15803d; }
+    .khqr-card .qr-pulse {
+      width: 7px; height: 7px; border-radius: 50%; background: currentColor;
       animation: qrPulse 1.2s ease-in-out infinite;
     }
     @keyframes qrPulse {
@@ -593,7 +629,7 @@
 
         <div class="platforms">
           <button type="button" class="${!filterCat ? "on" : ""}" onclick="setFilter('')">${icon("globe",14)} All</button>
-          ${cats.slice(0, 5).map(c => `
+          ${cats.slice(0, 7).map(c => `
             <button type="button" class="${filterCat === c ? "on" : ""}" onclick="setFilter('${esc(c)}')">
               ${PLATFORM_ICONS[c] || icon("hash",14)} ${esc(c)}
             </button>`).join("")}
@@ -602,7 +638,7 @@
         <div class="panel">
           <div class="tabs">
             <button class="on" type="button">${icon("cart",14)} New Order</button>
-            <button type="button" onclick="tab('services')">${icon("heart",14)} Services</button>
+            <button type="button" onclick="tab('orders')">${icon("list",14)} My Orders</button>
           </div>
 
           <div class="field">
@@ -618,24 +654,30 @@
               <option value="">Select service</option>
               ${filtered.map(s => `
                 <option value="${s.id}" data-rate="${s.rate}" data-min="${s.min}" data-max="${s.max}" data-name="${esc(s.name)}" data-cat="${esc(s.category)}">
-                  ${s.id} — ${esc(s.name)}
+                  #${s.id} · ${esc(s.name)} · $${Number(s.rate).toFixed(2)}/1k
                 </option>`).join("")}
             </select>
           </div>
+          <div id="svcInfo" class="svc-chip" style="display:none;margin-bottom:12px"></div>
           <div class="field">
-            <label>${icon("link",14)} Link</label>
-            <input id="link" placeholder="https://… or @username" />
+            <label>${icon("link",14)} Link / Username</label>
+            <input id="link" placeholder="https://tiktok.com/@user or @username" />
           </div>
           <div class="field">
             <label>${icon("hash",14)} Quantity</label>
             <input type="number" id="qty" min="1" placeholder="1000" oninput="calcCost()" />
+            <div id="qtyPresets" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
           </div>
-          <p class="hint" id="rangeHint">Select a service to see min / max</p>
+          <p class="hint" id="rangeHint">Select a service to see min / max and rate</p>
           <div class="charge-box">
-            <span class="lbl">Charge</span>
+            <div>
+              <div class="lbl">Total charge</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px" id="costDetail">Select service & quantity</div>
+            </div>
             <span class="val" id="cost">$0.00</span>
           </div>
-          <button class="btn-primary" onclick="placeOrder()">Submit order</button>
+          <button class="btn-primary" id="orderBtn" onclick="placeOrder()">Submit order</button>
+          <p class="hint" style="text-align:center;margin-top:10px;margin-bottom:0">Balance: <b>${money(user.balance)}</b> · Charged when order is placed</p>
         </div>`;
 
       // load order stats
@@ -662,14 +704,33 @@
     function onSvcChange() {
       const opt = document.getElementById("svc").selectedOptions[0];
       const hint = document.getElementById("rangeHint");
+      const info = document.getElementById("svcInfo");
+      const presets = document.getElementById("qtyPresets");
       if (!opt || !opt.value) {
-        hint.textContent = "Select a service to see min / max";
+        if (hint) hint.textContent = "Select a service to see min / max and rate";
+        if (info) info.style.display = "none";
+        if (presets) presets.innerHTML = "";
         calcCost();
         return;
       }
-      hint.textContent = `Min ${opt.dataset.min} · Max ${opt.dataset.max} · $${Number(opt.dataset.rate).toFixed(2)}/1k`;
-      document.getElementById("qty").min = opt.dataset.min;
-      document.getElementById("qty").max = opt.dataset.max;
+      const min = opt.dataset.min, max = opt.dataset.max, rate = Number(opt.dataset.rate);
+      if (hint) hint.textContent = `Min ${min} · Max ${max} · $${rate.toFixed(2)} per 1,000`;
+      document.getElementById("qty").min = min;
+      document.getElementById("qty").max = max;
+      if (info) {
+        info.style.display = "flex";
+        info.innerHTML = `<span class="svc-id">#${opt.value}</span>
+          <span style="flex:1;font-weight:600">${opt.dataset.name}</span>
+          <span style="color:var(--blue);font-weight:800">$${rate.toFixed(2)}/1k</span>`;
+      }
+      if (presets) {
+        const candidates = [100, 500, 1000, 2500, 5000, 10000, 25000, 50000]
+          .filter(n => n >= Number(min) && n <= Number(max));
+        presets.innerHTML = candidates.map(n =>
+          `<button type="button" class="btn-ghost" style="padding:5px 10px;font-size:11px"
+            onclick="document.getElementById('qty').value=${n};calcCost()">${n.toLocaleString()}</button>`
+        ).join("");
+      }
       calcCost();
     }
 
@@ -677,9 +738,17 @@
       const opt = document.getElementById("svc")?.selectedOptions?.[0];
       const qty = parseInt(document.getElementById("qty")?.value, 10) || 0;
       const el = document.getElementById("cost");
+      const detail = document.getElementById("costDetail");
       if (!el) return;
-      if (!opt?.value || !qty) { el.textContent = "$0.00"; return; }
-      el.textContent = "$" + ((qty / 1000) * parseFloat(opt.dataset.rate)).toFixed(4);
+      if (!opt?.value || !qty) {
+        el.textContent = "$0.00";
+        if (detail) detail.textContent = "Select service & quantity";
+        return;
+      }
+      const rate = parseFloat(opt.dataset.rate);
+      const cost = (qty / 1000) * rate;
+      el.textContent = "$" + cost.toFixed(4);
+      if (detail) detail.textContent = `${qty.toLocaleString()} × $${rate.toFixed(2)}/1k`;
     }
 
     async function placeOrder() {
@@ -689,38 +758,78 @@
       if (!service_id) return toast("Select a service", true);
       if (!quantity) return toast("Enter quantity", true);
       if (!link) return toast("Enter link", true);
+      const btn = document.getElementById("orderBtn");
+      if (btn) btn.disabled = true;
       try {
         const r = await api("orders", { method: "POST", body: { service_id, quantity, link } });
         setUser(r.user);
         toast("Order #" + r.order.id + " placed!");
         tab("orders");
       } catch (e) { toast(e.message, true); }
+      finally { if (btn) btn.disabled = false; }
     }
 
     async function renderOrders() {
       document.getElementById("main").innerHTML = `<div class="panel"><div class="empty">Loading…</div></div>`;
       try {
         const list = (await api("orders")).orders || [];
+        const counts = {};
+        list.forEach(o => { counts[o.status] = (counts[o.status] || 0) + 1; });
+        const statusFilters = ["all", "processing", "completed", "partial", "canceled", "failed"];
         document.getElementById("main").innerHTML = `
           <div class="panel">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-              <strong style="font-size:16px">Orders</strong>
-              <button class="btn-ghost" onclick="renderOrders()">Refresh</button>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap">
+              <strong style="font-size:16px">Orders <span style="color:var(--muted);font-weight:500;font-size:13px">(${list.length})</span></strong>
+              <div style="display:flex;gap:6px">
+                <button class="btn-ghost" onclick="tab('new')">${icon("cart",12)} New</button>
+                <button class="btn-ghost" onclick="renderOrders()">Refresh</button>
+              </div>
             </div>
-            ${list.length ? `<div style="overflow-x:auto"><table>
-              <thead><tr><th>ID</th><th>Service</th><th>Qty</th><th>Charge</th><th>Status</th><th>Date</th></tr></thead>
-              <tbody>${list.map(o => `
-                <tr>
-                  <td class="mono">#${o.id}</td>
-                  <td>${esc(o.service_name)}</td>
-                  <td>${o.quantity}</td>
-                  <td class="mono">${money(o.charge)}</td>
-                  <td><span class="badge ${esc(o.status)}">${esc(o.status)}</span></td>
-                  <td>${fmt(o.created_at)}</td>
-                </tr>`).join("")}
-              </tbody></table></div>` : `<div class="empty">No orders yet</div>`}
+            ${list.length ? `
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px" id="orderFilters">
+              ${statusFilters.map(s => {
+                const n = s === "all" ? list.length : (counts[s] || 0);
+                if (s !== "all" && !n) return "";
+                return `<button type="button" class="btn-ghost order-filter ${s==="all"?"on":""}" data-s="${s}"
+                  style="padding:5px 10px;font-size:11px${s==="all"?";border-color:var(--blue);color:var(--blue)":""}"
+                  onclick="filterOrders('${s}')">${s === "all" ? "All" : s} (${n})</button>`;
+              }).join("")}
+            </div>
+            <div style="overflow-x:auto">
+              <table id="ordersTable">
+                <thead><tr><th>ID</th><th>Service</th><th>Link</th><th>Qty</th><th>Charge</th><th>Status</th><th>Date</th></tr></thead>
+                <tbody>${list.map(o => `
+                  <tr data-status="${esc(o.status)}">
+                    <td class="mono">#${o.id}</td>
+                    <td style="max-width:140px">${esc(o.service_name)}</td>
+                    <td class="mono" style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(o.link||"")}">${esc(o.link || "—")}</td>
+                    <td>${Number(o.quantity).toLocaleString()}</td>
+                    <td class="mono">${money(o.charge)}</td>
+                    <td><span class="badge ${esc(o.status)}">${esc(o.status)}</span></td>
+                    <td style="white-space:nowrap;font-size:12px">${fmt(o.created_at)}</td>
+                  </tr>`).join("")}
+                </tbody>
+              </table>
+            </div>` : `
+            <div class="empty">
+              <div style="margin-bottom:12px;color:var(--muted)">${icon("cart",32)}</div>
+              <div style="margin-bottom:12px">No orders yet</div>
+              <button class="btn-primary" style="width:auto;padding:10px 20px;display:inline-block" onclick="tab('new')">Place first order</button>
+            </div>`}
           </div>`;
       } catch (e) { toast(e.message, true); }
+    }
+
+    function filterOrders(status) {
+      document.querySelectorAll(".order-filter").forEach(b => {
+        const on = b.dataset.s === status;
+        b.classList.toggle("on", on);
+        b.style.borderColor = on ? "var(--blue)" : "";
+        b.style.color = on ? "var(--blue)" : "";
+      });
+      document.querySelectorAll("#ordersTable tbody tr").forEach(tr => {
+        tr.style.display = (status === "all" || tr.dataset.status === status) ? "" : "none";
+      });
     }
 
     async function renderServices() {
@@ -754,12 +863,14 @@
       document.getElementById("main").innerHTML = `
         <div class="panel" style="max-width:420px;margin:0 auto">
           <strong style="font-size:16px">Add funds</strong>
-          <p class="muted" style="margin:8px 0 14px;line-height:1.5">Minimum $0.50. Demo auto-credits after ~8s.</p>
+          <p class="muted" style="margin:8px 0 14px;line-height:1.5">
+            Pay with <b>Bakong KHQR</b> — scan using any Bakong bank app. Minimum $0.50.
+          </p>
           <div class="field">
             <label>Amount (USD)</label>
             <input type="number" id="depAmount" min="0.5" step="0.5" value="5" />
           </div>
-          <button class="btn-primary" id="depBtn" onclick="startDeposit()">Continue</button>
+          <button class="btn-primary" id="depBtn" onclick="startDeposit()">Generate KHQR</button>
           <div id="depResult"></div>
         </div>`;
     }
@@ -772,16 +883,33 @@
       try {
         const r = await api("deposit", { method: "POST", body: { amount } });
         currentDepId = r.deposit_id;
+        const merchant = esc(r.merchant_name || "Kairozen SMM");
+        const city = esc(r.merchant_city || "Phnom Penh");
+        const currency = esc(r.currency || "USD");
         const qrInner = r.qr_image
-          ? `<div class="qr-frame"><img src="${r.qr_image}" alt="Payment QR" width="220" height="220" /></div>`
-          : `<div class="qr-frame" style="padding:28px;color:var(--blue)">${icon("smartphone",48)}</div>`;
+          ? `<div class="khqr-frame"><img src="${r.qr_image}" alt="KHQR" width="200" height="200" /></div>`
+          : `<div class="khqr-frame" style="padding:36px;color:#e31c23">${icon("smartphone",48)}</div>`;
+        const bakongLogo = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#fff" opacity=".2"/><path d="M7 12h10M12 7v10" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="12" r="3.5" stroke="#fff" stroke-width="1.8"/></svg>`;
         document.getElementById("depResult").innerHTML = `
-          <div class="qr-box">
-            ${qrInner}
-            <div class="qr-amount">${money(r.amount)}</div>
-            <p class="qr-hint">${esc(r.hint || "Scan with Bakong bank app")}</p>
-            <p class="qr-id">#${r.deposit_id}${r.demo ? " · Demo mode" : ""}</p>
-            <div id="depStatus" class="qr-status"><span class="qr-pulse"></span> Waiting for payment…</div>
+          <div class="khqr-card">
+            <div class="khqr-top">
+              <div class="khqr-brand">${bakongLogo} Bakong</div>
+              <span class="khqr-tag">KHQR</span>
+            </div>
+            <div class="khqr-body">
+              <div class="khqr-merchant">${merchant}</div>
+              <div class="khqr-city">${city}</div>
+              ${qrInner}
+              <div class="khqr-amount-wrap">
+                <div class="khqr-amount">${Number(r.amount).toFixed(2)}</div>
+                <div class="khqr-currency">${currency}</div>
+              </div>
+              <div class="khqr-bill">Bill #K${r.deposit_id}${r.demo ? " · DEMO" : ""}</div>
+            </div>
+            <div class="khqr-foot">
+              <p class="khqr-hint">${esc(r.hint || "Scan with any Bakong-supported bank app")}</p>
+              <div id="depStatus" class="khqr-status"><span class="qr-pulse"></span> Waiting for payment…</div>
+            </div>
           </div>`;
         if (pollTimer) clearInterval(pollTimer);
         pollTimer = setInterval(checkDeposit, 2500);
@@ -799,7 +927,7 @@
           setUser(r.user);
           const st = document.getElementById("depStatus");
           if (st) {
-            st.className = "qr-status ok";
+            st.className = "khqr-status ok";
             st.innerHTML = icon("check", 14) + " Paid successfully";
           }
           toast("Balance updated!");
