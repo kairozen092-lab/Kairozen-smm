@@ -132,8 +132,13 @@
     .feat .ico {
       width: 40px; height: 40px; border-radius: 10px;
       background: var(--blue-soft); color: var(--blue);
-      display: grid; place-items: center; margin-bottom: 10px; font-size: 18px;
+      display: grid; place-items: center; margin-bottom: 10px;
     }
+    .feat .ico svg { display: block; }
+    .hero-stats span {
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .hero-stats span svg { flex: none; opacity: .95; }
     .feat strong { display: block; font-size: 14px; margin-bottom: 4px; }
     .feat p { font-size: 12px; color: var(--muted); line-height: 1.45; }
 
@@ -163,9 +168,18 @@
     <h1>Grow your socials with real & cheap services</h1>
     <p>TikTok · Instagram · YouTube · Facebook · Telegram · Twitter/X — fast delivery, competitive rates.</p>
     <div class="hero-stats">
-      <span>⚡ Instant start</span>
-      <span>🛡️ Refill available</span>
-      <span>🔌 Reseller API</span>
+      <span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Instant start
+      </span>
+      <span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Refill available
+      </span>
+      <span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+        Reseller API
+      </span>
     </div>
   </div>
 
@@ -227,22 +241,30 @@
     </div>
     <div class="grid" style="margin-top:16px">
       <div class="feat">
-        <div class="ico">📦</div>
+        <div class="ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        </div>
         <strong>Ready-made packages</strong>
         <p>Full TikTok package (Followers, Likes, Views, Shares, Comments…) plus matching packages for every major platform.</p>
       </div>
       <div class="feat">
-        <div class="ico">⚡</div>
+        <div class="ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
         <strong>Fast delivery</strong>
         <p>Orders start processing immediately. Demo mode auto-completes for testing; live provider for real delivery.</p>
       </div>
       <div class="feat">
-        <div class="ico">🔌</div>
+        <div class="ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </div>
         <strong>Reseller API</strong>
         <p>PerfectPanel-compatible API so you can resell our services from your own site or bot.</p>
       </div>
       <div class="feat">
-        <div class="ico">💰</div>
+        <div class="ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
         <strong>Cheap rates</strong>
         <p>Transparent per-1k pricing. Add funds easily and only pay for what you order.</p>
       </div>
