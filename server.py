@@ -97,7 +97,18 @@ def public_user(u):
         "email": u.get("email", ""),
         "balance": round(float(u.get("balance", 0)), 4),
         "created_at": u.get("created_at"),
+        "api_key": u.get("api_key", ""),
     }
+
+
+def user_by_apikey(data, key):
+    key = (key or "").strip()
+    if not key:
+        return None
+    for u in data.get("users", []):
+        if u.get("api_key") and secrets.compare_digest(u["api_key"], key):
+            return u
+    return None
 
 
 # ---------- pages ----------
@@ -143,6 +154,7 @@ def register():
         "password_hash": generate_password_hash(password),
         "balance": 0.0,
         "created_at": time.time(),
+        "api_key": secrets.token_hex(20),
     }
     data["users"].append(user)
     save_db(data)
@@ -178,6 +190,23 @@ def me():
     return ok(user=public_user(user), settings=data.get("settings", {}))
 
 
+@app.route("/api/me/apikey", methods=["POST"])
+def regenerate_apikey():
+    """Regenerate the current user's reseller API key."""
+    data = load_db()
+    user = current_user(data)
+    if not user:
+        return err("Not logged in", 401)
+    new_key = secrets.token_hex(20)
+    for u in data["users"]:
+        if u["id"] == user["id"]:
+            u["api_key"] = new_key
+            user = u
+            break
+    save_db(data)
+    return ok(user=public_user(user))
+
+
 # ---------- catalogue ----------
 @app.route("/api/services")
 def services():
@@ -198,6 +227,93 @@ def public_settings():
             "CURRENCY": s.get("CURRENCY", "USD"),
         }
     )
+
+
+# ---------- reseller API (PerfectPanel-compatible) ----------
+# Lets other people/panels buy services from us programmatically, the same
+# way our own admin panel buys from an upstream provider via PROVIDER_API_URL.
+# Docs: POST /api/v2  (form-encoded or JSON), params: key, action, ...
+#   action=services              -> list of services
+#   action=add                   -> service, link, quantity          -> {order}
+#   action=status                -> order                            -> {status, charge, ...}
+#   action=multistatus            -> orders (comma separated ids)     -> {id: {...}, ...}
+#   action=balance               -> {balance, currency}
+@app.route("/api/v2", methods=["GET", "POST"])
+def reseller_api():
+    if request.method == "POST" and request.is_json:
+        body = request.get_json(silent=True) or {}
+    else:
+        body = request.values.to_dict()
+
+    data = load_db()
+    user = user_by_apikey(data, body.get("key"))
+    if not user:
+        return err("Invalid API key", 401)
+
+    action = (body.get("action") or "").strip().lower()
+
+    if action == "services":
+        out = [
+            {
+                "service": s["id"],
+                "name": s["name"],
+                "category": s["category"],
+                "rate": s["rate"],
+                "min": s["min"],
+                "max": s["max"],
+                "refill": bool(s.get("refill")),
+                "type": "Default",
+            }
+            for s in data.get("services", [])
+        ]
+        return jsonify(out)
+
+    if action == "balance":
+        return jsonify({"balance": round(float(user.get("balance", 0)), 4), "currency": data.get("settings", {}).get("CURRENCY", "USD")})
+
+    if action == "add":
+        try:
+            service_id = int(body.get("service"))
+            quantity = int(body.get("quantity"))
+        except (TypeError, ValueError):
+            return jsonify({"error": "Incorrect service ID or quantity"}), 400
+        link = (body.get("link") or "").strip()
+        if not link:
+            return jsonify({"error": "Link / username required"}), 400
+        order, error, user = place_order(data, user, service_id, quantity, link)
+        if error:
+            return jsonify({"error": error}), 400
+        save_db(data)
+        return jsonify({"order": order["id"]})
+
+    if action in ("status", "multistatus"):
+        ids_raw = body.get("orders") if action == "multistatus" else body.get("order")
+        if not ids_raw:
+            return jsonify({"error": "order id(s) required"}), 400
+        ids = [s.strip() for s in str(ids_raw).split(",") if s.strip()]
+        result = {}
+        for id_str in ids:
+            try:
+                oid = int(id_str)
+            except ValueError:
+                continue
+            o = next((x for x in data.get("orders", []) if x["id"] == oid and x["user_id"] == user["id"]), None)
+            if not o:
+                result[id_str] = {"error": "Order not found"}
+                continue
+            result[id_str] = {
+                "charge": o["charge"],
+                "start_count": o.get("start_count", 0),
+                "status": o["status"].capitalize(),
+                "remains": o.get("remains", 0),
+                "currency": data.get("settings", {}).get("CURRENCY", "USD"),
+            }
+        if action == "status":
+            single = next(iter(result.values()), {"error": "Order not found"})
+            return jsonify(single)
+        return jsonify(result)
+
+    return jsonify({"error": "Incorrect action"}), 400
 
 
 # ---------- orders ----------
@@ -240,16 +356,26 @@ def orders():
     if not link:
         return err("Link / username required")
 
+    order, error, user = place_order(data, user, service_id, quantity, link)
+    if error:
+        return err(error)
+    save_db(data)
+    return ok(order=order, user=public_user(user))
+
+
+def place_order(data, user, service_id, quantity, link):
+    """Shared order-placement logic used by the web app and the reseller API.
+    Returns (order_dict_or_None, error_message_or_None, updated_user)."""
     svc = next((s for s in data["services"] if s["id"] == service_id), None)
     if not svc:
-        return err("Service not found")
+        return None, "Service not found", user
     if quantity < svc["min"] or quantity > svc["max"]:
-        return err(f"Quantity must be between {svc['min']} and {svc['max']}")
+        return None, f"Quantity must be between {svc['min']} and {svc['max']}", user
 
     # rate is per 1000
     cost = round((quantity / 1000.0) * float(svc["rate"]), 4)
     if float(user["balance"]) < cost:
-        return err(f"Insufficient balance. Need ${cost:.4f}")
+        return None, f"Insufficient balance. Need ${cost:.4f}", user
 
     # debit
     for u in data["users"]:
@@ -273,21 +399,20 @@ def orders():
     }
     # Auto-send to provider when service has provider_service_id
     if svc.get("provider_service_id") and PROVIDER_API_URL and PROVIDER_API_KEY:
-        result, error = provider_request(
+        result, perror = provider_request(
             "add",
             service=str(svc["provider_service_id"]),
             link=link,
             quantity=str(quantity),
         )
-        if not error and isinstance(result, dict):
+        if not perror and isinstance(result, dict):
             order["provider_order_id"] = result.get("order") or result.get("order_id")
             order["provider_raw"] = result
-        elif error:
-            order["provider_error"] = error
+        elif perror:
+            order["provider_error"] = perror
 
     data.setdefault("orders", []).append(order)
-    save_db(data)
-    return ok(order=order, user=public_user(user))
+    return order, None, user
 
 
 # ---------- wallet / Bakong ----------
@@ -716,6 +841,72 @@ def admin_provider_services():
     if error:
         return err(error)
     return ok(provider_services=result if isinstance(result, list) else result)
+
+
+@app.route("/api/admin/provider/import", methods=["POST"])
+def admin_provider_import():
+    """Bulk-import chosen services from the upstream provider's catalogue,
+    applying a markup so our sell rate is above the provider's cost rate."""
+    if e := require_admin_session():
+        return e
+    body = request.get_json(silent=True) or {}
+    items = body.get("items") or []
+    if not isinstance(items, list) or not items:
+        return err("No items to import")
+    try:
+        markup_percent = float(body.get("markup_percent", 20))
+    except (TypeError, ValueError):
+        markup_percent = 20.0
+
+    data = load_db()
+    services_list = data.setdefault("services", [])
+    by_provider_id = {str(s.get("provider_service_id")): s for s in services_list if s.get("provider_service_id")}
+    next_local_id = max([s["id"] for s in services_list] or [0]) + 1
+
+    imported, updated = 0, 0
+    for item in items:
+        provider_sid = str(item.get("service") or item.get("id") or "").strip()
+        if not provider_sid:
+            continue
+        try:
+            base_rate = float(item.get("rate") or 0)
+        except (TypeError, ValueError):
+            base_rate = 0.0
+        sell_rate = round(base_rate * (1 + markup_percent / 100.0), 4)
+        try:
+            min_qty = int(float(item.get("min") or 100))
+            max_qty = int(float(item.get("max") or 10000))
+        except (TypeError, ValueError):
+            min_qty, max_qty = 100, 10000
+        name = (item.get("name") or "").strip() or f"Provider service {provider_sid}"
+        category = (item.get("category") or "Other").strip()
+
+        existing = by_provider_id.get(provider_sid)
+        if existing:
+            existing["name"] = name
+            existing["category"] = category
+            existing["rate"] = sell_rate
+            existing["min"] = min_qty
+            existing["max"] = max_qty
+            updated += 1
+        else:
+            svc = {
+                "id": next_local_id,
+                "category": category,
+                "name": name,
+                "rate": sell_rate,
+                "min": min_qty,
+                "max": max_qty,
+                "refill": bool(item.get("refill")),
+                "provider_service_id": provider_sid,
+            }
+            services_list.append(svc)
+            by_provider_id[provider_sid] = svc
+            next_local_id += 1
+            imported += 1
+
+    save_db(data)
+    return ok(imported=imported, updated=updated, total=len(services_list))
 
 
 @app.route("/api/admin/orders/send-provider", methods=["POST"])

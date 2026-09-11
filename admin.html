@@ -456,6 +456,8 @@
       } catch (e) { toast(e.message, true); }
     }
 
+    let providerCatalogue = [];
+
     async function renderProvider() {
       document.getElementById("main").innerHTML = `
         <div class="panel">
@@ -468,8 +470,28 @@
           </p>
           <div class="toolbar">
             <button class="btn sm" onclick="loadProviderServices()">Fetch provider services</button>
+            <label style="margin:0;display:flex;align-items:center;gap:6px;color:var(--muted);font-weight:600">
+              Markup %
+              <input id="markupPct" type="number" value="20" style="margin:0;padding:6px;width:70px" />
+            </label>
+            <button class="btn sm" id="importBtn" onclick="importSelected()" disabled>Import selected →</button>
+            <button class="btn sm ghost" onclick="toggleAllProv(true)">Select all</button>
+            <button class="btn sm ghost" onclick="toggleAllProv(false)">Select none</button>
           </div>
           <div id="provList" style="color:var(--muted);font-size:13px">Click fetch to load remote catalogue…</div>
+        </div>
+
+        <div class="panel">
+          <h2>Reseller API — let others buy from us</h2>
+          <p style="color:var(--muted);font-size:13px;line-height:1.55">
+            Every registered user gets their own API key (visible on their dashboard → API tab).
+            Other panels/resellers can place orders on <b>our</b> catalogue the same way we buy from
+            our own provider above.<br><br>
+            Endpoint: <code class="mono">POST ${location.origin}/api/v2</code><br>
+            Params (form or JSON): <code>key</code>, <code>action</code>
+            (<code>services</code> · <code>add</code> · <code>status</code> · <code>multistatus</code> · <code>balance</code>),
+            plus <code>service</code>, <code>link</code>, <code>quantity</code> for <code>add</code>.
+          </p>
         </div>`;
     }
 
@@ -479,14 +501,17 @@
       try {
         const r = await api("admin/provider/services");
         const list = Array.isArray(r.provider_services) ? r.provider_services : [];
+        providerCatalogue = list;
         if (!list.length) {
           box.innerHTML = `<pre style="white-space:pre-wrap;font-size:12px">${esc(JSON.stringify(r.provider_services, null, 2))}</pre>`;
+          document.getElementById("importBtn").disabled = true;
           return;
         }
         box.innerHTML = `<table>
-          <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Rate</th><th>Min</th><th>Max</th></tr></thead>
-          <tbody>${list.slice(0, 100).map(s => `
+          <thead><tr><th></th><th>ID</th><th>Name</th><th>Category</th><th>Rate</th><th>Min</th><th>Max</th></tr></thead>
+          <tbody>${list.slice(0, 200).map((s, i) => `
             <tr>
+              <td><input type="checkbox" class="provChk" data-i="${i}" /></td>
               <td class="mono">${esc(s.service||s.id||"")}</td>
               <td>${esc(s.name||"")}</td>
               <td>${esc(s.category||"")}</td>
@@ -495,10 +520,26 @@
               <td>${esc(s.max||"")}</td>
             </tr>`).join("")}
           </tbody></table>
-          <p style="margin-top:8px;color:var(--muted);font-size:12px">Showing first ${Math.min(100, list.length)} of ${list.length}. Copy ID into Provider SID on Services tab.</p>`;
+          <p style="margin-top:8px;color:var(--muted);font-size:12px">Showing first ${Math.min(200, list.length)} of ${list.length}. Tick services then hit "Import selected" to copy them into our own catalogue with a markup — or set a Provider SID manually on the Services tab.</p>`;
+        document.getElementById("importBtn").disabled = false;
       } catch (e) {
         box.innerHTML = `<span style="color:var(--err)">${esc(e.message)}</span>`;
       }
+    }
+
+    function toggleAllProv(on) {
+      document.querySelectorAll(".provChk").forEach(c => c.checked = on);
+    }
+
+    async function importSelected() {
+      const idxs = [...document.querySelectorAll(".provChk:checked")].map(c => parseInt(c.dataset.i, 10));
+      if (!idxs.length) { toast("Select at least one service", true); return; }
+      const markup_percent = parseFloat(document.getElementById("markupPct").value) || 0;
+      const items = idxs.map(i => providerCatalogue[i]);
+      try {
+        const r = await api("admin/provider/import", { method: "POST", body: { items, markup_percent } });
+        toast(`Imported ${r.imported}, updated ${r.updated} (${r.total} total services)`);
+      } catch (e) { toast(e.message, true); }
     }
 
     // boot

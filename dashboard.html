@@ -281,7 +281,7 @@
 </head>
 <body>
   <header class="header">
-    <button class="menu-toggle" id="menuBtn" aria-label="Menu">☰</button>
+    <button class="menu-toggle" id="menuBtn" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     <div class="brand">Kairozen SMM</div>
     <div class="spacer"></div>
     <div class="avatar" id="avatar">KZ</div>
@@ -289,19 +289,20 @@
 
   <div class="drawer-bg" id="drawerBg"></div>
   <aside class="drawer" id="drawer">
-    <button class="drawer-close" id="drawerClose">✕</button>
+    <button class="drawer-close" id="drawerClose"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <div class="drawer-user">
       <div class="logo-circle">KZ</div>
       <div class="bal" id="balPill">$0.00</div>
       <div class="uname" id="userName">—</div>
     </div>
     <nav class="drawer-nav">
-      <button class="on" data-t="new" onclick="tab('new')"><span class="ico">🛒</span> New order</button>
-      <button data-t="orders" onclick="tab('orders')"><span class="ico">📋</span> Orders</button>
-      <button data-t="deposit" onclick="tab('deposit')"><span class="ico">💵</span> Add funds</button>
-      <button data-t="services" onclick="tab('services')"><span class="ico">☰</span> Services</button>
-      <button data-t="history" onclick="tab('history')"><span class="ico">🧾</span> Transactions</button>
-      <button onclick="logout()"><span class="ico">🚪</span> Logout</button>
+      <button class="on" data-t="new" onclick="tab('new')"><span class="ico" data-icon="cart"></span> New order</button>
+      <button data-t="orders" onclick="tab('orders')"><span class="ico" data-icon="list"></span> Orders</button>
+      <button data-t="deposit" onclick="tab('deposit')"><span class="ico" data-icon="dollar"></span> Add funds</button>
+      <button data-t="services" onclick="tab('services')"><span class="ico" data-icon="grid"></span> Services</button>
+      <button data-t="history" onclick="tab('history')"><span class="ico" data-icon="receipt"></span> Transactions</button>
+      <button data-t="api" onclick="tab('api')"><span class="ico" data-icon="key"></span> API</button>
+      <button onclick="logout()"><span class="ico" data-icon="logout"></span> Logout</button>
     </nav>
   </aside>
 
@@ -311,8 +312,16 @@
 
   <div class="toast" id="toast"></div>
 
+  <script src="/icons.js"></script>
   <script>
     let user = null, services = [], currentDepId = null, pollTimer = null, filterCat = "";
+
+    function renderStaticIcons() {
+      document.querySelectorAll("[data-icon]").forEach(el => {
+        el.innerHTML = icon(el.dataset.icon, parseInt(el.dataset.iconSize || "16", 10));
+      });
+    }
+    renderStaticIcons();
 
     const menuBtn = document.getElementById("menuBtn");
     const drawer = document.getElementById("drawer");
@@ -371,12 +380,69 @@
       );
       if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
       ({ new: renderNew, orders: renderOrders, services: renderServices,
-         deposit: renderDeposit, history: renderHistory })[name]?.();
+         deposit: renderDeposit, history: renderHistory, api: renderApi })[name]?.();
+    }
+
+    async function renderApi() {
+      document.getElementById("main").innerHTML = `
+        <div class="panel">
+          <h2>Your API key</h2>
+          <p style="color:var(--muted);font-size:13px;margin-bottom:12px;line-height:1.55">
+            Use this key to place orders on our catalogue from your own site, bot or reseller panel —
+            same idea as a PerfectPanel-compatible SMM API.
+          </p>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+            <input id="apiKeyBox" readonly value="${esc(user.api_key || "")}"
+              style="flex:1;min-width:220px;margin:0;font-family:ui-monospace,monospace;font-size:12px" />
+            <button class="btn sm ghost" onclick="copyApiKey()">Copy</button>
+            <button class="btn sm danger" onclick="regenApiKey()">Regenerate</button>
+          </div>
+          <h2 style="margin-top:4px">How to use it</h2>
+          <p style="color:var(--muted);font-size:13px;line-height:1.7">
+            Endpoint: <code class="mono">POST ${location.origin}/api/v2</code><br>
+            Send <code>key</code> + <code>action</code> as form fields or JSON body.
+          </p>
+          <pre style="white-space:pre-wrap;font-size:12px;background:rgba(255,255,255,.04);padding:12px;border-radius:10px;margin-top:8px">curl -X POST ${location.origin}/api/v2 \\
+  -d key=${esc(user.api_key || "YOUR_KEY")} \\
+  -d action=services
+
+curl -X POST ${location.origin}/api/v2 \\
+  -d key=${esc(user.api_key || "YOUR_KEY")} \\
+  -d action=add -d service=1 -d link=https://... -d quantity=1000
+
+curl -X POST ${location.origin}/api/v2 \\
+  -d key=${esc(user.api_key || "YOUR_KEY")} \\
+  -d action=status -d order=123
+
+curl -X POST ${location.origin}/api/v2 \\
+  -d key=${esc(user.api_key || "YOUR_KEY")} \\
+  -d action=balance</pre>
+          <p style="color:var(--muted);font-size:12px;margin-top:10px">
+            Actions: <code>services</code> · <code>add</code> · <code>status</code> · <code>multistatus</code> · <code>balance</code>.
+            Orders placed via the API are charged to this account's balance, exactly like orders placed here.
+          </p>
+        </div>`;
+    }
+
+    function copyApiKey() {
+      const box = document.getElementById("apiKeyBox");
+      box.select();
+      navigator.clipboard?.writeText(box.value).then(() => toast("Copied")).catch(() => toast("Copy failed", true));
+    }
+
+    async function regenApiKey() {
+      if (!confirm("Regenerate your API key? Any integration using the old key will stop working.")) return;
+      try {
+        const r = await api("me/apikey", { method: "POST" });
+        setUser(r.user);
+        renderApi();
+        toast("New API key generated");
+      } catch (e) { toast(e.message, true); }
     }
 
     const PLATFORM_ICONS = {
-      Instagram: "📸", TikTok: "🎵", YouTube: "▶️", Facebook: "📘",
-      Telegram: "✈️", "Twitter / X": "🐦", Spotify: "🎧"
+      Instagram: icon("instagram", 16), TikTok: icon("music", 16), YouTube: icon("play", 16), Facebook: icon("facebook", 16),
+      Telegram: icon("send", 16), "Twitter / X": icon("twitter", 16), Spotify: icon("headphones", 16)
     };
 
     async function renderNew() {
@@ -392,46 +458,46 @@
       document.getElementById("main").innerHTML = `
         <div class="stats">
           <div class="stat">
-            <div class="icon">👤</div>
+            <div class="icon">${icon("user",20)}</div>
             <div><div class="n">${esc(user.username)}</div><div class="l">Username</div></div>
           </div>
           <div class="stat">
-            <div class="icon">💵</div>
+            <div class="icon">${icon("dollar",20)}</div>
             <div><div class="n">${money(user.balance)}</div><div class="l">Balance</div></div>
           </div>
           <div class="stat">
-            <div class="icon">📊</div>
+            <div class="icon">${icon("barchart",20)}</div>
             <div><div class="n" id="spendStat">—</div><div class="l">Total Spend</div></div>
           </div>
           <div class="stat">
-            <div class="icon">🛒</div>
+            <div class="icon">${icon("cart",20)}</div>
             <div><div class="n" id="ordersStat">—</div><div class="l">Orders</div></div>
           </div>
         </div>
 
         <div class="platforms">
-          <button type="button" class="${!filterCat ? "on" : ""}" onclick="setFilter('')">🌐 All</button>
+          <button type="button" class="${!filterCat ? "on" : ""}" onclick="setFilter('')">${icon("globe",14)} All</button>
           ${cats.slice(0, 5).map(c => `
             <button type="button" class="${filterCat === c ? "on" : ""}" onclick="setFilter('${esc(c)}')">
-              ${PLATFORM_ICONS[c] || "•"} ${esc(c)}
+              ${PLATFORM_ICONS[c] || icon("hash",14)} ${esc(c)}
             </button>`).join("")}
         </div>
 
         <div class="panel">
           <div class="tabs">
-            <button class="on" type="button">🛒 New Order</button>
-            <button type="button" onclick="tab('services')">♥ Services</button>
+            <button class="on" type="button">${icon("cart",14)} New Order</button>
+            <button type="button" onclick="tab('services')">${icon("heart",14)} Services</button>
           </div>
 
           <div class="field">
-            <label>▦ Category</label>
+            <label>${icon("grid",14)} Category</label>
             <select id="cat" onchange="onCatChange()">
               <option value="">All categories</option>
               ${cats.map(c => `<option value="${esc(c)}" ${filterCat===c?"selected":""}>${esc(c)}</option>`).join("")}
             </select>
           </div>
           <div class="field">
-            <label>☰ Service</label>
+            <label>${icon("list",14)} Service</label>
             <select id="svc" onchange="onSvcChange()">
               <option value="">Select service</option>
               ${filtered.map(s => `
@@ -441,11 +507,11 @@
             </select>
           </div>
           <div class="field">
-            <label>🔗 Link</label>
+            <label>${icon("link",14)} Link</label>
             <input id="link" placeholder="https://… or @username" />
           </div>
           <div class="field">
-            <label>🔢 Quantity</label>
+            <label>${icon("hash",14)} Quantity</label>
             <input type="number" id="qty" min="1" placeholder="1000" oninput="calcCost()" />
           </div>
           <p class="hint" id="rangeHint">Select a service to see min / max</p>
@@ -592,7 +658,7 @@
         currentDepId = r.deposit_id;
         document.getElementById("depResult").innerHTML = `
           <div class="qr-box">
-            ${r.qr_image ? `<img src="${r.qr_image}" alt="QR" />` : `<div style="font-size:40px">📱</div>`}
+            ${r.qr_image ? `<img src="${r.qr_image}" alt="QR" />` : `<div style="font-size:40px">${icon("smartphone",40)}</div>`}
             <div style="font-weight:800;font-size:1.25rem;color:var(--blue);margin-top:8px">${money(r.amount)}</div>
             <p class="muted" style="margin-top:6px">${esc(r.hint || "")}</p>
             <p class="muted">#${r.deposit_id}${r.demo ? " · Demo" : ""}</p>
@@ -613,7 +679,7 @@
           clearInterval(pollTimer); pollTimer = null;
           setUser(r.user);
           const st = document.getElementById("depStatus");
-          if (st) { st.style.color = "var(--ok)"; st.textContent = "✓ Paid"; }
+          if (st) { st.style.color = "var(--ok)"; st.innerHTML = icon("check",14) + " Paid"; }
           toast("Balance updated!");
           currentDepId = null;
         }
