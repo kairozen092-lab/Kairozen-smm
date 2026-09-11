@@ -355,6 +355,7 @@
           <h2>Services</h2>
           <div class="toolbar">
             <button class="btn sm" onclick="addService()">+ Add service</button>
+            <button class="btn sm ghost" onclick="seedDefaults()">↺ Add missing starter services</button>
           </div>
           <table>
             <thead><tr>
@@ -416,6 +417,14 @@
           body: { name, category: "Other", rate: 1, min: 100, max: 10000 },
         });
         toast("Added");
+        renderServices();
+      } catch (e) { toast(e.message, true); }
+    }
+
+    async function seedDefaults() {
+      try {
+        const r = await api("admin/services/seed-defaults", { method: "POST" });
+        toast(`Added ${r.added} missing service(s) (${r.total} total). Existing data untouched.`);
         renderServices();
       } catch (e) { toast(e.message, true); }
     }
@@ -489,7 +498,8 @@
             our own provider above.<br><br>
             Endpoint: <code class="mono">POST ${location.origin}/api/v2</code><br>
             Params (form or JSON): <code>key</code>, <code>action</code>
-            (<code>services</code> · <code>add</code> · <code>status</code> · <code>multistatus</code> · <code>balance</code>),
+            (<code>services</code> · <code>add</code> · <code>status</code> · <code>multistatus</code> ·
+            <code>refill</code> · <code>refill_status</code> · <code>cancel</code> · <code>balance</code>),
             plus <code>service</code>, <code>link</code>, <code>quantity</code> for <code>add</code>.
           </p>
         </div>`;

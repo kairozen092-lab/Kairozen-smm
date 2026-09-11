@@ -418,7 +418,10 @@ curl -X POST ${location.origin}/api/v2 \\
   -d key=${esc(user.api_key || "YOUR_KEY")} \\
   -d action=balance</pre>
           <p style="color:var(--muted);font-size:12px;margin-top:10px">
-            Actions: <code>services</code> · <code>add</code> · <code>status</code> · <code>multistatus</code> · <code>balance</code>.
+            Actions: <code>services</code> · <code>add</code> · <code>status</code> · <code>multistatus</code> ·
+            <code>refill</code> · <code>refill_status</code> · <code>cancel</code> · <code>balance</code>.
+            Same request/response shape as the standard SMM Panel API — any existing reseller script or bot
+            already built for that API works here unchanged.
             Orders placed via the API are charged to this account's balance, exactly like orders placed here.
           </p>
         </div>`;

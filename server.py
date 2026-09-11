@@ -229,15 +229,42 @@ def public_settings():
     )
 
 
-# ---------- reseller API (PerfectPanel-compatible) ----------
+# ---------- reseller API (standard SMM Panel API — PerfectPanel/JAP style) ----------
 # Lets other people/panels buy services from us programmatically, the same
 # way our own admin panel buys from an upstream provider via PROVIDER_API_URL.
 # Docs: POST /api/v2  (form-encoded or JSON), params: key, action, ...
-#   action=services              -> list of services
-#   action=add                   -> service, link, quantity          -> {order}
-#   action=status                -> order                            -> {status, charge, ...}
-#   action=multistatus            -> orders (comma separated ids)     -> {id: {...}, ...}
-#   action=balance               -> {balance, currency}
+#   action=services       ->                                   -> [{service,name,type,category,rate,min,max,refill}, ...]
+#   action=add            -> service, link, quantity            -> {order}
+#   action=status         -> order                              -> {charge, start_count, status, remains, currency}
+#   action=multistatus    -> orders (comma separated ids)       -> {id: {...}, ...}
+#   action=refill         -> order                              -> {refill} | {error}
+#   action=refill_status  -> refill                             -> {status}
+#   action=cancel         -> orders (comma separated ids)       -> [{order, cancel: {status}}, ...]
+#   action=balance        ->                                    -> {balance, currency}
+# Matches the widely-used SMM Panel API convention so any reseller script,
+# bot or third-party panel that already speaks that protocol works with us
+# unmodified. Per that convention every well-formed request returns HTTP 200,
+# with `{"error": "..."}` in the body on failure -- clients generally only
+# inspect the JSON, not the status code.
+_ORDER_STATUS_DISPLAY = {
+    "processing": "In progress",
+    "completed": "Completed",
+    "partial": "Partial",
+    "canceled": "Canceled",
+    "failed": "Canceled",
+}
+
+
+def _order_status_payload(o, currency):
+    return {
+        "charge": o["charge"],
+        "start_count": o.get("start_count", 0),
+        "status": _ORDER_STATUS_DISPLAY.get(o.get("status"), (o.get("status") or "").capitalize()),
+        "remains": o.get("remains", 0),
+        "currency": currency,
+    }
+
+
 @app.route("/api/v2", methods=["GET", "POST"])
 def reseller_api():
     if request.method == "POST" and request.is_json:
@@ -248,48 +275,50 @@ def reseller_api():
     data = load_db()
     user = user_by_apikey(data, body.get("key"))
     if not user:
-        return err("Invalid API key", 401)
+        return jsonify({"error": "Invalid API key"})
 
     action = (body.get("action") or "").strip().lower()
+    currency = data.get("settings", {}).get("CURRENCY", "USD")
 
     if action == "services":
         out = [
             {
                 "service": s["id"],
                 "name": s["name"],
+                "type": "Default",
                 "category": s["category"],
                 "rate": s["rate"],
                 "min": s["min"],
                 "max": s["max"],
                 "refill": bool(s.get("refill")),
-                "type": "Default",
+                "cancel": False,
             }
             for s in data.get("services", [])
         ]
         return jsonify(out)
 
     if action == "balance":
-        return jsonify({"balance": round(float(user.get("balance", 0)), 4), "currency": data.get("settings", {}).get("CURRENCY", "USD")})
+        return jsonify({"balance": f'{round(float(user.get("balance", 0)), 4):.4f}', "currency": currency})
 
     if action == "add":
         try:
             service_id = int(body.get("service"))
             quantity = int(body.get("quantity"))
         except (TypeError, ValueError):
-            return jsonify({"error": "Incorrect service ID or quantity"}), 400
+            return jsonify({"error": "Incorrect service ID or quantity"})
         link = (body.get("link") or "").strip()
         if not link:
-            return jsonify({"error": "Link / username required"}), 400
+            return jsonify({"error": "Link / username required"})
         order, error, user = place_order(data, user, service_id, quantity, link)
         if error:
-            return jsonify({"error": error}), 400
+            return jsonify({"error": error})
         save_db(data)
         return jsonify({"order": order["id"]})
 
     if action in ("status", "multistatus"):
         ids_raw = body.get("orders") if action == "multistatus" else body.get("order")
         if not ids_raw:
-            return jsonify({"error": "order id(s) required"}), 400
+            return jsonify({"error": "order id(s) required"})
         ids = [s.strip() for s in str(ids_raw).split(",") if s.strip()]
         result = {}
         for id_str in ids:
@@ -298,22 +327,77 @@ def reseller_api():
             except ValueError:
                 continue
             o = next((x for x in data.get("orders", []) if x["id"] == oid and x["user_id"] == user["id"]), None)
-            if not o:
-                result[id_str] = {"error": "Order not found"}
-                continue
-            result[id_str] = {
-                "charge": o["charge"],
-                "start_count": o.get("start_count", 0),
-                "status": o["status"].capitalize(),
-                "remains": o.get("remains", 0),
-                "currency": data.get("settings", {}).get("CURRENCY", "USD"),
-            }
+            result[id_str] = {"error": "Order not found"} if not o else _order_status_payload(o, currency)
         if action == "status":
-            single = next(iter(result.values()), {"error": "Order not found"})
-            return jsonify(single)
+            return jsonify(next(iter(result.values()), {"error": "Order not found"}))
         return jsonify(result)
 
-    return jsonify({"error": "Incorrect action"}), 400
+    if action == "refill":
+        try:
+            oid = int(body.get("order"))
+        except (TypeError, ValueError):
+            return jsonify({"error": "Incorrect order id"})
+        o = next((x for x in data.get("orders", []) if x["id"] == oid and x["user_id"] == user["id"]), None)
+        if not o:
+            return jsonify({"error": "Order not found"})
+        svc = next((s for s in data.get("services", []) if s["id"] == o["service_id"]), None)
+        if not (svc and svc.get("refill")):
+            return jsonify({"error": "Refill not available for this service"})
+        if o.get("status") != "completed":
+            return jsonify({"error": "Order must be completed before it can be refilled"})
+        refill_id = next_id(data, "refills")
+        o.setdefault("refills", []).append(
+            {"id": refill_id, "status": "Pending", "created_at": time.time()}
+        )
+        save_db(data)
+        return jsonify({"refill": refill_id})
+
+    if action == "refill_status":
+        try:
+            rid = int(body.get("refill"))
+        except (TypeError, ValueError):
+            return jsonify({"error": "Incorrect refill id"})
+        for o in data.get("orders", []):
+            if o["user_id"] != user["id"]:
+                continue
+            for r in o.get("refills", []):
+                if r["id"] == rid:
+                    return jsonify({"status": r["status"]})
+        return jsonify({"error": "Refill not found"})
+
+    if action == "cancel":
+        ids_raw = body.get("orders") or body.get("order")
+        if not ids_raw:
+            return jsonify({"error": "order id(s) required"})
+        ids = [s.strip() for s in str(ids_raw).split(",") if s.strip()]
+        out = []
+        changed = False
+        for id_str in ids:
+            try:
+                oid = int(id_str)
+            except ValueError:
+                continue
+            o = next((x for x in data.get("orders", []) if x["id"] == oid and x["user_id"] == user["id"]), None)
+            if not o:
+                out.append({"order": id_str, "cancel": {"error": "Order not found"}})
+                continue
+            if o.get("status") != "processing" or o.get("provider_order_id"):
+                out.append({"order": id_str, "cancel": {"error": "Order can no longer be canceled"}})
+                continue
+            o["status"] = "canceled"
+            o["remains"] = o.get("quantity", 0)
+            o["updated_at"] = time.time()
+            for u in data["users"]:
+                if u["id"] == user["id"]:
+                    u["balance"] = round(float(u["balance"]) + float(o["charge"]), 4)
+                    break
+            changed = True
+            out.append({"order": id_str, "cancel": {"status": "Canceled"}})
+        if changed:
+            save_db(data)
+        return jsonify(out)
+
+    return jsonify({"error": "Incorrect action"})
 
 
 # ---------- orders ----------
@@ -337,6 +421,7 @@ def orders():
                 and now - float(o.get("created_at") or 0) >= 45
             ):
                 o["status"] = "completed"
+                o["remains"] = 0
                 o["updated_at"] = now
                 o["demo_complete"] = True
                 changed = True
@@ -394,6 +479,8 @@ def place_order(data, user, service_id, quantity, link):
         "quantity": quantity,
         "charge": cost,
         "status": "processing",
+        "start_count": 0,
+        "remains": quantity,
         "created_at": time.time(),
         "updated_at": time.time(),
     }
@@ -715,6 +802,10 @@ def admin_order_status():
     for o in data.get("orders", []):
         if o["id"] == oid:
             o["status"] = status
+            if status == "completed":
+                o["remains"] = 0
+            elif status in ("canceled", "failed"):
+                o["remains"] = o.get("quantity", 0)
             o["updated_at"] = time.time()
             save_db(data)
             return ok(order=o)
@@ -841,6 +932,49 @@ def admin_provider_services():
     if error:
         return err(error)
     return ok(provider_services=result if isinstance(result, list) else result)
+
+
+@app.route("/api/admin/services/seed-defaults", methods=["POST"])
+def admin_services_seed_defaults():
+    """Add any starter services from db_default.json that are missing from the
+    LIVE database (matched by name) — never touches existing users, orders,
+    deposits or services. Safe to run any time, e.g. after a code update."""
+    if e := require_admin_session():
+        return e
+    if not DEFAULT_DB.exists():
+        return err("db_default.json not found next to server.py")
+    try:
+        defaults = json.loads(DEFAULT_DB.read_text(encoding="utf-8"))
+    except Exception as ex:
+        return err(f"Could not read db_default.json: {ex}")
+
+    data = load_db()
+    services_list = data.setdefault("services", [])
+    existing_names = {(s.get("name") or "").strip().lower() for s in services_list}
+    next_local_id = max([s["id"] for s in services_list] or [0]) + 1
+
+    added = 0
+    for svc in defaults.get("services", []):
+        name = (svc.get("name") or "").strip()
+        if not name or name.lower() in existing_names:
+            continue
+        new_svc = {
+            "id": next_local_id,
+            "category": svc.get("category", "Other"),
+            "name": name,
+            "rate": float(svc.get("rate", 1)),
+            "min": int(svc.get("min", 100)),
+            "max": int(svc.get("max", 10000)),
+            "refill": bool(svc.get("refill", False)),
+            "provider_service_id": svc.get("provider_service_id"),
+        }
+        services_list.append(new_svc)
+        existing_names.add(name.lower())
+        next_local_id += 1
+        added += 1
+
+    save_db(data)
+    return ok(added=added, total=len(services_list))
 
 
 @app.route("/api/admin/provider/import", methods=["POST"])
@@ -980,6 +1114,16 @@ def admin_sync_provider():
         }
         if st in mapping:
             order["status"] = mapping[st]
+        if "remains" in result:
+            try:
+                order["remains"] = int(result["remains"])
+            except (TypeError, ValueError):
+                pass
+        if "start_count" in result:
+            try:
+                order["start_count"] = int(result["start_count"])
+            except (TypeError, ValueError):
+                pass
         order["provider_status"] = result
         order["updated_at"] = time.time()
         save_db(data)
