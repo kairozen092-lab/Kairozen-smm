@@ -444,16 +444,22 @@ curl -X POST ${location.origin}/api/v2 \\
     }
 
     const PLATFORM_ICONS = {
-      Instagram: icon("instagram", 16), TikTok: icon("music", 16), YouTube: icon("play", 16), Facebook: icon("facebook", 16),
-      Telegram: icon("send", 16), "Twitter / X": icon("twitter", 16), Spotify: icon("headphones", 16)
+      TikTok: icon("music", 16), Instagram: icon("instagram", 16), YouTube: icon("play", 16),
+      Facebook: icon("facebook", 16), Telegram: icon("send", 16), "Twitter / X": icon("twitter", 16),
+      Spotify: icon("headphones", 16)
     };
+    const PREFERRED_ORDER = ["TikTok", "Instagram", "YouTube", "Facebook", "Telegram", "Twitter / X", "Spotify"];
 
     async function renderNew() {
       if (!services.length) {
         try { services = (await api("services")).services || []; }
         catch (e) { toast(e.message, true); }
       }
-      const cats = [...new Set(services.map(s => s.category))];
+      const rawCats = [...new Set(services.map(s => s.category))];
+      const cats = [
+        ...PREFERRED_ORDER.filter(c => rawCats.includes(c)),
+        ...rawCats.filter(c => !PREFERRED_ORDER.includes(c))
+      ];
       const filtered = filterCat
         ? services.filter(s => s.category === filterCat)
         : services;

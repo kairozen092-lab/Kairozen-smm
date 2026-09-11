@@ -350,19 +350,28 @@
 
     async function renderServices() {
       const r = await api("admin/services");
+      const list = r.services || [];
+      const cats = {};
+      list.forEach(s => { cats[s.category] = (cats[s.category] || 0) + 1; });
+      const catSummary = Object.entries(cats).map(([c, n]) => `${esc(c)} (${n})`).join(" · ") || "—";
       document.getElementById("main").innerHTML = `
         <div class="panel">
-          <h2>Services</h2>
+          <h2>Services <span style="color:var(--muted);font-weight:500;font-size:12px">(${list.length} total)</span></h2>
+          <p style="color:var(--muted);font-size:12px;margin-bottom:10px">${catSummary}</p>
           <div class="toolbar">
             <button class="btn sm" onclick="addService()">+ Add service</button>
-            <button class="btn sm ghost" onclick="seedDefaults()">↺ Add missing starter services</button>
+            <button class="btn sm" style="background:#22c55e" onclick="seedDefaults()">↺ Seed TikTok + other packages</button>
+            <button class="btn sm ghost" onclick="normalizeCategories()">Normalize categories</button>
           </div>
+          <p style="color:var(--muted);font-size:12px;margin-bottom:12px;line-height:1.5">
+            Starter packages: <b>TikTok</b> (Followers, Likes, Views, Shares, Comments, Saves, Live, Profile Visits) + same structure for Instagram, YouTube, Facebook, Telegram, Twitter/X, Spotify.
+          </p>
           <table>
             <thead><tr>
               <th>ID</th><th>Category</th><th>Name</th><th>Rate/1k</th><th>Min</th><th>Max</th>
               <th>Provider SID</th><th></th>
             </tr></thead>
-            <tbody>${(r.services||[]).map(s => `
+            <tbody>${list.map(s => `
               <tr>
                 <td class="mono">#${s.id}</td>
                 <td><input value="${esc(s.category)}" id="c${s.id}" style="margin:0;padding:6px" /></td>
@@ -375,7 +384,7 @@
                   <button class="btn sm" onclick="saveService(${s.id})">Save</button>
                   <button class="btn sm danger" onclick="delService(${s.id})">Del</button>
                 </td>
-              </tr>`).join("")}
+              </tr>`).join("") || "<tr><td colspan=8>No services — click Seed packages</td></tr>"}
             </tbody>
           </table>
         </div>`;
@@ -484,9 +493,18 @@
               <input id="markupPct" type="number" value="20" style="margin:0;padding:6px;width:70px" />
             </label>
             <button class="btn sm" id="importBtn" onclick="importSelected()" disabled>Import selected →</button>
+            <button class="btn sm" style="background:#22c55e" onclick="importByCategory('TikTok')">TikTok Package</button>
+            <button class="btn sm ghost" onclick="importByCategory('Instagram')">IG Package</button>
+            <button class="btn sm ghost" onclick="importByCategory('YouTube')">YT Package</button>
+            <button class="btn sm ghost" onclick="importByCategory('Facebook')">FB Package</button>
+            <button class="btn sm ghost" onclick="importByCategory('Telegram')">TG Package</button>
             <button class="btn sm ghost" onclick="toggleAllProv(true)">Select all</button>
             <button class="btn sm ghost" onclick="toggleAllProv(false)">Select none</button>
           </div>
+          <p style="color:var(--muted);font-size:12px;margin:8px 0 12px;line-height:1.5">
+            <b>TikTok Package</b> = ទាញ service TikTok ទាំងអស់ពី provider ចូល catalogue ខ្លួនឯង (មាន markup)។
+          </p>
+          <div class="toolbar" id="provCatFilters" style="display:none;margin-bottom:8px"></div>
           <div id="provList" style="color:var(--muted);font-size:13px">Click fetch to load remote catalogue…</div>
         </div>
 
@@ -505,6 +523,30 @@
         </div>`;
     }
 
+    function renderProvTable(list) {
+      const box = document.getElementById("provList");
+      if (!list.length) {
+        box.innerHTML = `<p style="color:var(--muted)">No services match filter.</p>`;
+        return;
+      }
+      box.innerHTML = `<table>
+        <thead><tr><th></th><th>ID</th><th>Name</th><th>Category</th><th>Rate</th><th>Min</th><th>Max</th></tr></thead>
+        <tbody>${list.slice(0, 300).map((s) => {
+          const realIdx = providerCatalogue.indexOf(s);
+          return `<tr>
+            <td><input type="checkbox" class="provChk" data-i="${realIdx}" /></td>
+            <td class="mono">${esc(s.service||s.id||"")}</td>
+            <td>${esc(s.name||"")}</td>
+            <td>${esc(s.category||"")}</td>
+            <td>${esc(s.rate||"")}</td>
+            <td>${esc(s.min||"")}</td>
+            <td>${esc(s.max||"")}</td>
+          </tr>`;
+        }).join("")}
+        </tbody></table>
+        <p style="margin-top:8px;color:var(--muted);font-size:12px">Showing ${Math.min(300, list.length)} of ${list.length}. Use Package buttons or select + Import.</p>`;
+    }
+
     async function loadProviderServices() {
       const box = document.getElementById("provList");
       box.textContent = "Loading…";
@@ -517,24 +559,31 @@
           document.getElementById("importBtn").disabled = true;
           return;
         }
-        box.innerHTML = `<table>
-          <thead><tr><th></th><th>ID</th><th>Name</th><th>Category</th><th>Rate</th><th>Min</th><th>Max</th></tr></thead>
-          <tbody>${list.slice(0, 200).map((s, i) => `
-            <tr>
-              <td><input type="checkbox" class="provChk" data-i="${i}" /></td>
-              <td class="mono">${esc(s.service||s.id||"")}</td>
-              <td>${esc(s.name||"")}</td>
-              <td>${esc(s.category||"")}</td>
-              <td>${esc(s.rate||"")}</td>
-              <td>${esc(s.min||"")}</td>
-              <td>${esc(s.max||"")}</td>
-            </tr>`).join("")}
-          </tbody></table>
-          <p style="margin-top:8px;color:var(--muted);font-size:12px">Showing first ${Math.min(200, list.length)} of ${list.length}. Tick services then hit "Import selected" to copy them into our own catalogue with a markup — or set a Provider SID manually on the Services tab.</p>`;
+        const cats = {};
+        list.forEach(s => {
+          const c = (s.category || "Other").trim() || "Other";
+          cats[c] = (cats[c] || 0) + 1;
+        });
+        const filterBox = document.getElementById("provCatFilters");
+        filterBox.style.display = "flex";
+        filterBox.innerHTML = `
+          <button class="btn sm ghost" onclick="setProvFilter('')">All (${list.length})</button>
+          ${Object.entries(cats).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([c,n]) =>
+            `<button class="btn sm ghost" onclick="setProvFilter('${esc(c).replace(/'/g,"&#39;")}')">${esc(c)} (${n})</button>`
+          ).join("")}`;
         document.getElementById("importBtn").disabled = false;
+        renderProvTable(list);
       } catch (e) {
         box.innerHTML = `<span style="color:var(--err)">${esc(e.message)}</span>`;
       }
+    }
+
+    function setProvFilter(cat) {
+      const filtered = cat
+        ? providerCatalogue.filter(s => String(s.category||"").toLowerCase() === cat.toLowerCase()
+            || String(s.name||"").toLowerCase().includes(cat.toLowerCase()))
+        : providerCatalogue;
+      renderProvTable(filtered);
     }
 
     function toggleAllProv(on) {
@@ -545,11 +594,44 @@
       const idxs = [...document.querySelectorAll(".provChk:checked")].map(c => parseInt(c.dataset.i, 10));
       if (!idxs.length) { toast("Select at least one service", true); return; }
       const markup_percent = parseFloat(document.getElementById("markupPct").value) || 0;
-      const items = idxs.map(i => providerCatalogue[i]);
+      const items = idxs.map(i => providerCatalogue[i]).filter(Boolean);
       try {
         const r = await api("admin/provider/import", { method: "POST", body: { items, markup_percent } });
         toast(`Imported ${r.imported}, updated ${r.updated} (${r.total} total services)`);
         tab("services");
+      } catch (e) { toast(e.message, true); }
+    }
+
+    async function importByCategory(platform) {
+      if (!providerCatalogue.length) {
+        toast("Fetch provider services first", true);
+        return;
+      }
+      const key = (platform || "").toLowerCase();
+      const items = providerCatalogue.filter(s => {
+        const cat = String(s.category || "").toLowerCase();
+        const name = String(s.name || "").toLowerCase();
+        return cat.includes(key) || name.includes(key) ||
+          (key === "tiktok" && (cat.includes("tt") || name.includes("tt ")));
+      });
+      if (!items.length) {
+        toast(`No ${platform} services found in provider catalogue`, true);
+        return;
+      }
+      if (!confirm(`Import ${items.length} ${platform} services with markup?`)) return;
+      const markup_percent = parseFloat(document.getElementById("markupPct").value) || 0;
+      try {
+        const r = await api("admin/provider/import", { method: "POST", body: { items, markup_percent } });
+        toast(`${platform} package → +${r.imported} new, ${r.updated} updated (${r.total} total)`);
+        tab("services");
+      } catch (e) { toast(e.message, true); }
+    }
+
+    async function normalizeCategories() {
+      try {
+        const r = await api("admin/services/normalize-categories", { method: "POST" });
+        toast(`Normalized ${r.updated} services`);
+        renderServices();
       } catch (e) { toast(e.message, true); }
     }
 

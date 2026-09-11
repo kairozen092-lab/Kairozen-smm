@@ -1,35 +1,330 @@
 {
-  "users": [],
-  "orders": [],
-  "deposits": [],
   "next_ids": {
     "users": 1,
     "orders": 1,
-    "deposits": 1
+    "deposits": 1,
+    "refills": 1
   },
+  "users": [],
+  "orders": [],
+  "deposits": [],
   "settings": {
     "SITE_NAME": "Kairozen SMM",
     "LOGO_URL": "",
     "TELEGRAM_LINK": "",
-    "SUPPORT_EMAIL": "",
+    "SUPPORT_EMAIL": "support@kairozen.com",
     "CURRENCY": "USD"
   },
   "services": [
-    { "id": 1, "category": "Instagram", "name": "Instagram Followers - High Quality", "rate": 1.20, "min": 100, "max": 50000, "refill": true, "provider_service_id": null },
-    { "id": 2, "category": "Instagram", "name": "Instagram Likes - Instant", "rate": 0.35, "min": 50, "max": 20000, "refill": true, "provider_service_id": null },
-    { "id": 3, "category": "Instagram", "name": "Instagram Views (Reels/Video)", "rate": 0.10, "min": 100, "max": 1000000, "refill": false, "provider_service_id": null },
-    { "id": 4, "category": "TikTok", "name": "TikTok Followers", "rate": 1.50, "min": 100, "max": 50000, "refill": true, "provider_service_id": null },
-    { "id": 5, "category": "TikTok", "name": "TikTok Likes", "rate": 0.40, "min": 50, "max": 20000, "refill": false, "provider_service_id": null },
-    { "id": 6, "category": "TikTok", "name": "TikTok Views", "rate": 0.08, "min": 100, "max": 5000000, "refill": false, "provider_service_id": null },
-    { "id": 7, "category": "YouTube", "name": "YouTube Subscribers", "rate": 3.00, "min": 50, "max": 20000, "refill": true, "provider_service_id": null },
-    { "id": 8, "category": "YouTube", "name": "YouTube Views", "rate": 1.00, "min": 100, "max": 1000000, "refill": false, "provider_service_id": null },
-    { "id": 9, "category": "Facebook", "name": "Facebook Page Likes", "rate": 1.80, "min": 100, "max": 50000, "refill": true, "provider_service_id": null },
-    { "id": 10, "category": "Facebook", "name": "Facebook Post Engagement", "rate": 0.50, "min": 50, "max": 20000, "refill": false, "provider_service_id": null },
-    { "id": 11, "category": "Telegram", "name": "Telegram Channel Members", "rate": 1.00, "min": 100, "max": 100000, "refill": false, "provider_service_id": null },
-    { "id": 12, "category": "Telegram", "name": "Telegram Post Views", "rate": 0.05, "min": 100, "max": 1000000, "refill": false, "provider_service_id": null },
-    { "id": 13, "category": "Twitter / X", "name": "Twitter / X Followers", "rate": 2.50, "min": 50, "max": 20000, "refill": true, "provider_service_id": null },
-    { "id": 14, "category": "Twitter / X", "name": "Twitter / X Likes", "rate": 0.60, "min": 50, "max": 10000, "refill": false, "provider_service_id": null },
-    { "id": 15, "category": "Spotify", "name": "Spotify Plays", "rate": 0.30, "min": 1000, "max": 1000000, "refill": false, "provider_service_id": null },
-    { "id": 16, "category": "Spotify", "name": "Spotify Followers", "rate": 2.00, "min": 100, "max": 20000, "refill": false, "provider_service_id": null }
+    {
+      "id": 1,
+      "category": "TikTok",
+      "name": "TikTok Followers [Real + HQ]",
+      "rate": 1.80,
+      "min": 100,
+      "max": 50000,
+      "refill": true,
+      "provider_service_id": null
+    },
+    {
+      "id": 2,
+      "category": "TikTok",
+      "name": "TikTok Likes [Fast]",
+      "rate": 0.45,
+      "min": 50,
+      "max": 100000,
+      "refill": true,
+      "provider_service_id": null
+    },
+    {
+      "id": 3,
+      "category": "TikTok",
+      "name": "TikTok Views [High Retention]",
+      "rate": 0.12,
+      "min": 1000,
+      "max": 5000000,
+      "refill": false,
+      "provider_service_id": null
+    },
+    {
+      "id": 4,
+      "category": "TikTok",
+      "name": "TikTok Shares",
+      "rate": 0.80,
+      "min": 50,
+      "max": 20000,
+      "refill": false,
+      "provider_service_id": null
+    },
+    {
+      "id": 5,
+      "category": "TikTok",
+      "name": "TikTok Comments [Custom]",
+      "rate": 4.50,
+      "min": 10,
+      "max": 5000,
+      "refill": false,
+      "provider_service_id": null
+    },
+    {
+      "id": 6,
+      "category": "TikTok",
+      "name": "TikTok Saves / Bookmarks",
+      "rate": 0.90,
+      "min": 50,
+      "max": 30000,
+      "refill": true,
+      "provider_service_id": null
+    },
+    {
+      "id": 7,
+      "category": "TikTok",
+      "name": "TikTok Live Stream Views",
+      "rate": 1.20,
+      "min": 100,
+      "max": 50000,
+      "refill": false,
+      "provider_service_id": null
+    },
+    {
+      "id": 8,
+      "category": "TikTok",
+      "name": "TikTok Profile Visits",
+      "rate": 0.35,
+      "min": 100,
+      "max": 100000,
+      "refill": false,
+      "provider_service_id": null
+    },
+    {
+      "id": 9,
+      "category": "Instagram",
+      "name": "Instagram Followers [Real + HQ]",
+      "rate": 2.20,
+      "min": 100,
+      "max": 50000,
+      "refill": true,
+      "provider_service_id": null
+    },
+    {
+      "id": 10,
+      "category": "Instagram",
+      "name": "Instagram Likes [Fast]",
+      "rate": 0.55,
+      "min": 50,
+      "max": 100000,
+      "refill": true,
+      "provider_service_id": null
+    },
+    {
+      "id": 11,
+      "category": "Instagram",
+      "name": "Instagram Views [Reels / Video]",
+      "rate": 0.15,
+      "min": 1000,
+      "max": 5000000,
+      "refill": false,
+      "provider_service_id": null
+    },
+    {
+      "id": 12,
+      "category": "Instagram",
+      "name": "Instagram Comments [Custom]",
+      "rate": 5.00,
+      "min": 10,
+      "max": 5000,
+      "refill": false,
+      "provider_service_id": null
+    },
+    {
+      "id": 13,
+      "category": "Instagram",
+      "name": "Instagram Saves",
+      "rate": 1.10,
+      "min": 50,
+      "max": 30000,
+      "refill": true,
+      "provider_service_id": null
+    },
+    {
+      "id": 14,
+      "category": "Instagram",
+      "name": "Instagram Story Views",
+      "rate": 0.40,
+      "min": 100,
+      "max": 100000,
+      "refill": false,
+      "provider_service_id": null
+    },
+    {
+      "id": 15,
+      "category": "YouTube",
+      "name": "YouTube Subscribers [Real]",
+      "rate": 8.50,
+      "min": 50,
+      "max": 20000,
+      "refill": true,
+      "provider_service_id": null
+    },
+    {
+      "id": 16,
+      "category": "YouTube",
+      "name": "YouTube Likes",
+      "rate": 1.80,
+      "min": 50,
+      "max": 50000,
+      "refill": true,
+      "provider_service_id": null
+    },
+    {
+      "id": 17,
+      "category": "YouTube",
+      "name": "YouTube Views [High Retention]",
+      "rate": 1.20,
+      "min": 1000,
+      "max": 1000000,
+      "refill": false,
+      "provider_service_id": null
+    },
+    {
+      "id": 18,
+      "category": "YouTube",
+      "name": "YouTube Comments",
+      "rate": 6.00,
+      "min": 10,
+      "max": 2000,
+      "refill": false,
+      "provider_service_id": null
+    },
+    {
+      "id": 19,
+      "category": "YouTube",
+      "name": "YouTube Watch Hours",
+      "rate": 12.00,
+      "min": 100,
+      "max": 10000,
+      "refill": false,
+      "provider_service_id": null
+    },
+    {
+      "id": 20,
+      "category": "Facebook",
+      "name": "Facebook Page Likes / Followers",
+      "rate": 2.50,
+      "min": 100,
+      "max": 50000,
+      "refill": true,
+      "provider_service_id": null
+    },
+    {
+      "id": 21,
+      "category": "Facebook",
+      "name": "Facebook Post Likes",
+      "rate": 0.70,
+      "min": 50,
+      "max": 100000,
+      "refill": true,
+      "provider_service_id": null
+    },
+    {
+      "id": 22,
+      "category": "Facebook",
+      "name": "Facebook Video Views",
+      "rate": 0.25,
+      "min": 1000,
+      "max": 2000000,
+      "refill": false,
+      "provider_service_id": null
+    },
+    {
+      "id": 23,
+      "category": "Telegram",
+      "name": "Telegram Channel Members",
+      "rate": 1.50,
+      "min": 100,
+      "max": 100000,
+      "refill": true,
+      "provider_service_id": null
+    },
+    {
+      "id": 24,
+      "category": "Telegram",
+      "name": "Telegram Post Views",
+      "rate": 0.18,
+      "min": 500,
+      "max": 500000,
+      "refill": false,
+      "provider_service_id": null
+    },
+    {
+      "id": 25,
+      "category": "Telegram",
+      "name": "Telegram Reactions",
+      "rate": 0.60,
+      "min": 50,
+      "max": 50000,
+      "refill": false,
+      "provider_service_id": null
+    },
+    {
+      "id": 26,
+      "category": "Twitter / X",
+      "name": "Twitter / X Followers",
+      "rate": 3.00,
+      "min": 100,
+      "max": 30000,
+      "refill": true,
+      "provider_service_id": null
+    },
+    {
+      "id": 27,
+      "category": "Twitter / X",
+      "name": "Twitter / X Likes",
+      "rate": 0.90,
+      "min": 50,
+      "max": 50000,
+      "refill": true,
+      "provider_service_id": null
+    },
+    {
+      "id": 28,
+      "category": "Twitter / X",
+      "name": "Twitter / X Retweets",
+      "rate": 1.40,
+      "min": 50,
+      "max": 20000,
+      "refill": false,
+      "provider_service_id": null
+    },
+    {
+      "id": 29,
+      "category": "Twitter / X",
+      "name": "Twitter / X Views",
+      "rate": 0.20,
+      "min": 1000,
+      "max": 1000000,
+      "refill": false,
+      "provider_service_id": null
+    },
+    {
+      "id": 30,
+      "category": "Spotify",
+      "name": "Spotify Plays",
+      "rate": 0.80,
+      "min": 1000,
+      "max": 500000,
+      "refill": false,
+      "provider_service_id": null
+    },
+    {
+      "id": 31,
+      "category": "Spotify",
+      "name": "Spotify Followers",
+      "rate": 2.80,
+      "min": 100,
+      "max": 20000,
+      "refill": true,
+      "provider_service_id": null
+    }
   ]
 }

@@ -10,6 +10,8 @@ import threading
 import time
 from pathlib import Path
 
+from datetime import timedelta
+
 from flask import Flask, jsonify, request, send_from_directory, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -21,13 +23,19 @@ _DATA_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH = Path(os.environ.get("KAIROZEN_DB") or (_DATA_DIR / "db.json"))
 
 app = Flask(__name__, static_folder=str(BASE), static_url_path="")
-app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(24))
+# IMPORTANT: set SECRET_KEY in env so sessions survive server restarts.
+# If SECRET_KEY changes, every user is logged out and must sign in again.
+app.secret_key = os.environ.get("SECRET_KEY") or "kairozen-dev-secret-change-me-in-production"
 # Secure cookies when behind HTTPS (Render)
 _prod = bool(os.environ.get("RENDER") or os.environ.get("FORCE_HTTPS"))
+# Keep users logged in longer so they don't have to sign in again often
+_SESSION_DAYS = int(os.environ.get("SESSION_DAYS", "30"))
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=_prod,
+    PERMANENT_SESSION_LIFETIME=timedelta(days=_SESSION_DAYS),
+    SESSION_REFRESH_EACH_REQUEST=True,
 )
 
 _lock = threading.Lock()
@@ -46,6 +54,9 @@ ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 # PerfectPanel-compatible provider (optional)
 PROVIDER_API_URL = os.environ.get("PROVIDER_API_URL", "").rstrip("/")
 PROVIDER_API_KEY = os.environ.get("PROVIDER_API_KEY", "")
+# Telegram Login Widget (https://core.telegram.org/widgets/login)
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_BOT_USERNAME = os.environ.get("TELEGRAM_BOT_USERNAME", "").lstrip("@")
 
 
 
@@ -158,6 +169,8 @@ def register():
     }
     data["users"].append(user)
     save_db(data)
+    # Stay logged in so user does not need to sign in again soon
+    session.permanent = True
     session["user_id"] = user["id"]
     return ok(user=public_user(user))
 
@@ -167,12 +180,120 @@ def login():
     body = request.get_json(silent=True) or {}
     username = (body.get("username") or "").strip()
     password = body.get("password") or ""
+    # remember=True (default) keeps session for SESSION_DAYS; False = browser session only
+    remember = body.get("remember", True)
     data = load_db()
     user = next((u for u in data["users"] if u["username"].lower() == username.lower()), None)
-    if not user or not check_password_hash(user["password_hash"], password):
+    if not user or not check_password_hash(user.get("password_hash") or "", password):
         return err("Invalid username or password", 401)
+    session.permanent = bool(remember)
     session["user_id"] = user["id"]
     return ok(user=public_user(user))
+
+
+def _verify_telegram_auth(data: dict) -> bool:
+    """Verify Telegram Login Widget payload (HMAC-SHA256 with bot token)."""
+    if not TELEGRAM_BOT_TOKEN:
+        return False
+    check_hash = data.get("hash")
+    if not check_hash:
+        return False
+    # Build data-check-string: sorted key=value pairs excluding hash
+    pairs = []
+    for k in sorted(data.keys()):
+        if k == "hash":
+            continue
+        v = data.get(k)
+        if v is None:
+            continue
+        pairs.append(f"{k}={v}")
+    check_string = "\n".join(pairs)
+    secret_key = hashlib.sha256(TELEGRAM_BOT_TOKEN.encode()).digest()
+    import hmac
+
+    computed = hmac.new(secret_key, check_string.encode(), hashlib.sha256).hexdigest()
+    if not secrets.compare_digest(computed, check_hash):
+        return False
+    # Auth data must be recent (within 1 day)
+    try:
+        auth_date = int(data.get("auth_date") or 0)
+    except (TypeError, ValueError):
+        return False
+    if abs(time.time() - auth_date) > 86400:
+        return False
+    return True
+
+
+@app.route("/api/login/telegram", methods=["POST"])
+def login_telegram():
+    """Login / register via Telegram Login Widget. No Google — Telegram only social login."""
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_BOT_USERNAME:
+        return err("Telegram login is not configured (set TELEGRAM_BOT_TOKEN + TELEGRAM_BOT_USERNAME)")
+    body = request.get_json(silent=True) or {}
+    # Widget sends: id, first_name, last_name?, username?, photo_url?, auth_date, hash
+    tg_id = body.get("id")
+    if tg_id is None:
+        return err("Missing Telegram user id")
+    if not _verify_telegram_auth(body):
+        return err("Invalid Telegram auth data", 401)
+
+    tg_id = str(tg_id)
+    tg_username = (body.get("username") or "").strip()
+    first_name = (body.get("first_name") or "").strip()
+    last_name = (body.get("last_name") or "").strip()
+    display = tg_username or (first_name + (" " + last_name if last_name else "")).strip() or f"tg_{tg_id}"
+
+    data = load_db()
+    # Find existing user by telegram_id
+    user = next((u for u in data["users"] if str(u.get("telegram_id") or "") == tg_id), None)
+    if not user and tg_username:
+        # Optional: match by username if previously registered
+        user = next(
+            (u for u in data["users"] if (u.get("username") or "").lower() == tg_username.lower() and not u.get("telegram_id")),
+            None,
+        )
+        if user:
+            user["telegram_id"] = tg_id
+
+    if not user:
+        # Auto-register
+        base_name = tg_username or f"tg_{tg_id}"
+        username = base_name
+        n = 1
+        existing = {u["username"].lower() for u in data["users"]}
+        while username.lower() in existing:
+            username = f"{base_name}_{n}"
+            n += 1
+        user = {
+            "id": next_id(data, "users"),
+            "username": username,
+            "email": f"{tg_id}@telegram.user",
+            "password_hash": "",  # no password — Telegram only
+            "balance": 0.0,
+            "created_at": time.time(),
+            "api_key": secrets.token_hex(20),
+            "telegram_id": tg_id,
+            "telegram_name": display,
+        }
+        data["users"].append(user)
+    else:
+        user["telegram_id"] = tg_id
+        if display:
+            user["telegram_name"] = display
+
+    save_db(data)
+    session.permanent = True
+    session["user_id"] = user["id"]
+    return ok(user=public_user(user))
+
+
+@app.route("/api/auth/telegram-config")
+def telegram_config():
+    """Public: bot username for the Login Widget (no token)."""
+    return ok(
+        enabled=bool(TELEGRAM_BOT_TOKEN and TELEGRAM_BOT_USERNAME),
+        bot_username=TELEGRAM_BOT_USERNAME or "",
+    )
 
 
 @app.route("/api/logout", methods=["POST"])
@@ -705,6 +826,7 @@ def provider_request(action: str, **params):
 def admin_login():
     body = request.get_json(silent=True) or {}
     if (body.get("username") or "") == ADMIN_USERNAME and (body.get("password") or "") == ADMIN_PASSWORD:
+        session.permanent = True
         session["is_admin"] = True
         session.pop("user_id", None)
         return ok(admin=True)
@@ -934,6 +1056,31 @@ def admin_provider_services():
     return ok(provider_services=result if isinstance(result, list) else result)
 
 
+def _normalize_category(raw: str) -> str:
+    """Map common provider category names to clean platform labels."""
+    t = (raw or "").strip().lower()
+    if not t:
+        return "Other"
+    mapping = [
+        (("tiktok", "tik tok", "tt ", " tt", "douyin"), "TikTok"),
+        (("instagram", "ig ", " insta"), "Instagram"),
+        (("youtube", "yt ", " ytb"), "YouTube"),
+        (("facebook", "fb ", " meta"), "Facebook"),
+        (("telegram", "tg ", " tele"), "Telegram"),
+        (("twitter", "x.com", " x ", "tweet"), "Twitter / X"),
+        (("spotify",), "Spotify"),
+        (("threads",), "Threads"),
+        (("snapchat", "snap"), "Snapchat"),
+        (("linkedin",), "LinkedIn"),
+        (("twitch",), "Twitch"),
+        (("discord",), "Discord"),
+    ]
+    for keys, label in mapping:
+        if any(k in t for k in keys):
+            return label
+    return (raw or "Other").strip().title() or "Other"
+
+
 @app.route("/api/admin/services/seed-defaults", methods=["POST"])
 def admin_services_seed_defaults():
     """Add any starter services from db_default.json that are missing from the
@@ -960,7 +1107,7 @@ def admin_services_seed_defaults():
             continue
         new_svc = {
             "id": next_local_id,
-            "category": svc.get("category", "Other"),
+            "category": _normalize_category(svc.get("category", "Other")),
             "name": name,
             "rate": float(svc.get("rate", 1)),
             "min": int(svc.get("min", 100)),
@@ -975,6 +1122,27 @@ def admin_services_seed_defaults():
 
     save_db(data)
     return ok(added=added, total=len(services_list))
+
+
+@app.route("/api/admin/services/normalize-categories", methods=["POST"])
+def admin_normalize_categories():
+    """Clean up category names on existing services (TikTok, Instagram, …)."""
+    if e := require_admin_session():
+        return e
+    data = load_db()
+    updated = 0
+    for s in data.get("services", []):
+        old = s.get("category") or ""
+        new = _normalize_category(old)
+        if new in ("Other", "Default", "") or new.lower() == old.lower():
+            inferred = _normalize_category(s.get("name") or "")
+            if inferred != "Other":
+                new = inferred
+        if new != old:
+            s["category"] = new
+            updated += 1
+    save_db(data)
+    return ok(updated=updated, total=len(data.get("services", [])))
 
 
 @app.route("/api/admin/provider/import", methods=["POST"])
@@ -1013,7 +1181,9 @@ def admin_provider_import():
         except (TypeError, ValueError):
             min_qty, max_qty = 100, 10000
         name = (item.get("name") or "").strip() or f"Provider service {provider_sid}"
-        category = (item.get("category") or "Other").strip()
+        category = _normalize_category(item.get("category") or "")
+        if category == "Other":
+            category = _normalize_category(name)
 
         existing = by_provider_id.get(provider_sid)
         if existing:
@@ -1041,96 +1211,6 @@ def admin_provider_import():
 
     save_db(data)
     return ok(imported=imported, updated=updated, total=len(services_list))
-
-
-@app.route("/api/admin/provider/sync", methods=["POST"])
-def admin_provider_sync():
-    """Fetch the full catalogue from the upstream provider and sync into our local
-    services. Existing services matched by provider_service_id get rates/min/max/
-    name/category refreshed (with markup). Optionally import brand-new services
-    that we don't have yet (import_new=true)."""
-    if e := require_admin_session():
-        return e
-    if not PROVIDER_API_URL or not PROVIDER_API_KEY:
-        return err("Provider API not configured (set PROVIDER_API_URL + PROVIDER_API_KEY)")
-
-    body = request.get_json(silent=True) or {}
-    try:
-        markup_percent = float(body.get("markup_percent", 20))
-    except (TypeError, ValueError):
-        markup_percent = 20.0
-    import_new = bool(body.get("import_new", True))
-
-    result, error = provider_request("services")
-    if error:
-        return err(error)
-    if not isinstance(result, list):
-        return err("Provider did not return a services list")
-
-    data = load_db()
-    services_list = data.setdefault("services", [])
-    by_provider_id = {
-        str(s.get("provider_service_id")): s
-        for s in services_list
-        if s.get("provider_service_id")
-    }
-    next_local_id = max([s["id"] for s in services_list] or [0]) + 1
-
-    updated, imported, skipped = 0, 0, 0
-    for item in result:
-        provider_sid = str(item.get("service") or item.get("id") or "").strip()
-        if not provider_sid:
-            continue
-        try:
-            base_rate = float(item.get("rate") or 0)
-        except (TypeError, ValueError):
-            base_rate = 0.0
-        sell_rate = round(base_rate * (1 + markup_percent / 100.0), 4)
-        try:
-            min_qty = int(float(item.get("min") or 100))
-            max_qty = int(float(item.get("max") or 10000))
-        except (TypeError, ValueError):
-            min_qty, max_qty = 100, 10000
-        name = (item.get("name") or "").strip() or f"Provider service {provider_sid}"
-        category = (item.get("category") or "Other").strip()
-        refill = bool(item.get("refill"))
-
-        existing = by_provider_id.get(provider_sid)
-        if existing:
-            existing["name"] = name
-            existing["category"] = category
-            existing["rate"] = sell_rate
-            existing["min"] = min_qty
-            existing["max"] = max_qty
-            existing["refill"] = refill
-            updated += 1
-        elif import_new:
-            svc = {
-                "id": next_local_id,
-                "category": category,
-                "name": name,
-                "rate": sell_rate,
-                "min": min_qty,
-                "max": max_qty,
-                "refill": refill,
-                "provider_service_id": provider_sid,
-            }
-            services_list.append(svc)
-            by_provider_id[provider_sid] = svc
-            next_local_id += 1
-            imported += 1
-        else:
-            skipped += 1
-
-    save_db(data)
-    return ok(
-        updated=updated,
-        imported=imported,
-        skipped=skipped,
-        total=len(services_list),
-        provider_count=len(result),
-        markup_percent=markup_percent,
-    )
 
 
 @app.route("/api/admin/orders/send-provider", methods=["POST"])
