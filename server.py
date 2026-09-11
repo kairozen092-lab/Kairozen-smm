@@ -1043,6 +1043,96 @@ def admin_provider_import():
     return ok(imported=imported, updated=updated, total=len(services_list))
 
 
+@app.route("/api/admin/provider/sync", methods=["POST"])
+def admin_provider_sync():
+    """Fetch the full catalogue from the upstream provider and sync into our local
+    services. Existing services matched by provider_service_id get rates/min/max/
+    name/category refreshed (with markup). Optionally import brand-new services
+    that we don't have yet (import_new=true)."""
+    if e := require_admin_session():
+        return e
+    if not PROVIDER_API_URL or not PROVIDER_API_KEY:
+        return err("Provider API not configured (set PROVIDER_API_URL + PROVIDER_API_KEY)")
+
+    body = request.get_json(silent=True) or {}
+    try:
+        markup_percent = float(body.get("markup_percent", 20))
+    except (TypeError, ValueError):
+        markup_percent = 20.0
+    import_new = bool(body.get("import_new", True))
+
+    result, error = provider_request("services")
+    if error:
+        return err(error)
+    if not isinstance(result, list):
+        return err("Provider did not return a services list")
+
+    data = load_db()
+    services_list = data.setdefault("services", [])
+    by_provider_id = {
+        str(s.get("provider_service_id")): s
+        for s in services_list
+        if s.get("provider_service_id")
+    }
+    next_local_id = max([s["id"] for s in services_list] or [0]) + 1
+
+    updated, imported, skipped = 0, 0, 0
+    for item in result:
+        provider_sid = str(item.get("service") or item.get("id") or "").strip()
+        if not provider_sid:
+            continue
+        try:
+            base_rate = float(item.get("rate") or 0)
+        except (TypeError, ValueError):
+            base_rate = 0.0
+        sell_rate = round(base_rate * (1 + markup_percent / 100.0), 4)
+        try:
+            min_qty = int(float(item.get("min") or 100))
+            max_qty = int(float(item.get("max") or 10000))
+        except (TypeError, ValueError):
+            min_qty, max_qty = 100, 10000
+        name = (item.get("name") or "").strip() or f"Provider service {provider_sid}"
+        category = (item.get("category") or "Other").strip()
+        refill = bool(item.get("refill"))
+
+        existing = by_provider_id.get(provider_sid)
+        if existing:
+            existing["name"] = name
+            existing["category"] = category
+            existing["rate"] = sell_rate
+            existing["min"] = min_qty
+            existing["max"] = max_qty
+            existing["refill"] = refill
+            updated += 1
+        elif import_new:
+            svc = {
+                "id": next_local_id,
+                "category": category,
+                "name": name,
+                "rate": sell_rate,
+                "min": min_qty,
+                "max": max_qty,
+                "refill": refill,
+                "provider_service_id": provider_sid,
+            }
+            services_list.append(svc)
+            by_provider_id[provider_sid] = svc
+            next_local_id += 1
+            imported += 1
+        else:
+            skipped += 1
+
+    save_db(data)
+    return ok(
+        updated=updated,
+        imported=imported,
+        skipped=skipped,
+        total=len(services_list),
+        provider_count=len(result),
+        markup_percent=markup_percent,
+    )
+
+
 @app.route("/api/admin/orders/send-provider", methods=["POST"])
 def admin_send_provider():
     """Push a local order to the external SMM provider."""
