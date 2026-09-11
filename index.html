@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Kairozen SMM — Cheap & Fast Social Media Marketing</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --blue: #0088FF;
+      --blue-dark: #0066CC;
+      --blue-soft: #e8f4ff;
+      --bg: #f0f4f8;
+      --card: #ffffff;
+      --ink: #1a2332;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --ok: #22c55e;
+      --err: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Inter, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    button, input { font-family: inherit; }
+
+    .hero {
+      background: linear-gradient(145deg, #0088FF 0%, #5b5bff 55%, #7c3aed 100%);
+      color: #fff;
+      padding: 28px 18px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: "";
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at 20% 30%, rgba(255,255,255,.12), transparent 50%),
+                  radial-gradient(circle at 80% 70%, rgba(255,255,255,.08), transparent 40%);
+      pointer-events: none;
+    }
+    .hero .brand {
+      font-weight: 800; font-size: 1.35rem; letter-spacing: -.02em;
+      margin-bottom: 18px; position: relative;
+    }
+    .hero h1 {
+      font-size: clamp(1.5rem, 5vw, 2.1rem);
+      font-weight: 800; line-height: 1.25;
+      max-width: 520px; margin: 0 auto 12px; position: relative;
+    }
+    .hero p {
+      opacity: .9; font-size: 15px; max-width: 420px;
+      margin: 0 auto 22px; line-height: 1.5; position: relative;
+    }
+    .hero-stats {
+      display: flex; justify-content: center; gap: 18px; flex-wrap: wrap;
+      position: relative; margin-top: 8px;
+    }
+    .hero-stats span {
+      background: rgba(255,255,255,.18);
+      padding: 6px 14px; border-radius: 999px;
+      font-size: 13px; font-weight: 600;
+    }
+
+    .wrap { max-width: 420px; margin: -36px auto 40px; padding: 0 16px; position: relative; z-index: 2; }
+    .card {
+      background: var(--card);
+      border-radius: 20px;
+      padding: 24px 20px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.12);
+    }
+    .tabs {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+      background: #f1f5f9; border-radius: 12px; padding: 4px; margin-bottom: 18px;
+    }
+    .tabs button {
+      border: 0; background: transparent; padding: 10px;
+      border-radius: 10px; font-weight: 700; font-size: 14px;
+      color: var(--muted); cursor: pointer;
+    }
+    .tabs button.on {
+      background: #fff; color: var(--blue);
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    label {
+      display: block; font-size: 12px; font-weight: 700;
+      color: var(--muted); margin-bottom: 6px;
+    }
+    input {
+      width: 100%; padding: 12px 14px;
+      border-radius: 12px; border: 1px solid var(--line);
+      background: #f8fafc; color: var(--ink); font-size: 14px;
+      margin-bottom: 12px;
+    }
+    input:focus {
+      outline: none; border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(0,136,255,.15); background: #fff;
+    }
+    .btn {
+      width: 100%; padding: 14px; border: 0; border-radius: 12px;
+      background: var(--blue); color: #fff;
+      font-weight: 700; font-size: 15px; cursor: pointer; margin-top: 4px;
+    }
+    .btn:hover { background: var(--blue-dark); }
+    .btn:disabled { opacity: .55; }
+    .hint { text-align: center; font-size: 12px; color: var(--muted); margin-top: 14px; }
+    .err-msg {
+      background: #fef2f2; color: var(--err);
+      padding: 10px 12px; border-radius: 10px;
+      font-size: 13px; font-weight: 600; margin-bottom: 12px; display: none;
+    }
+
+    .features {
+      max-width: 720px; margin: 0 auto 48px; padding: 0 16px;
+    }
+    .features h2 {
+      text-align: center; font-size: 1.2rem; font-weight: 800;
+      margin-bottom: 18px;
+    }
+    .grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    .feat {
+      background: var(--card); border-radius: 14px; padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .feat .ico {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: var(--blue-soft); color: var(--blue);
+      display: grid; place-items: center; margin-bottom: 10px; font-size: 18px;
+    }
+    .feat strong { display: block; font-size: 14px; margin-bottom: 4px; }
+    .feat p { font-size: 12px; color: var(--muted); line-height: 1.45; }
+
+    .platforms {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+      margin: 20px 0 8px;
+    }
+    .platforms span {
+      background: #fff; border: 1.5px solid var(--blue);
+      color: var(--blue); font-weight: 600; font-size: 12px;
+      padding: 6px 12px; border-radius: 999px;
+    }
+
+    footer {
+      text-align: center; padding: 24px 16px 40px;
+      font-size: 12px; color: var(--muted);
+    }
+
+    @media (max-width: 480px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <div class="brand">Kairozen SMM</div>
+    <h1>Grow your socials with real & cheap services</h1>
+    <p>TikTok · Instagram · YouTube · Facebook · Telegram · Twitter/X — fast delivery, competitive rates.</p>
+    <div class="hero-stats">
+      <span>⚡ Instant start</span>
+      <span>🛡️ Refill available</span>
+      <span>🔌 Reseller API</span>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="err-msg" id="errBox"></div>
+
+      <!-- Telegram Login (primary — no Google) -->
+      <div id="tgBlock" style="text-align:center;margin-bottom:18px">
+        <p style="font-weight:700;font-size:15px;margin-bottom:12px">Sign in with Telegram</p>
+        <div id="tgWidget" style="display:flex;justify-content:center;min-height:44px">
+          <p id="tgLoading" style="color:var(--muted);font-size:13px">Loading Telegram…</p>
+        </div>
+        <p id="tgHint" class="hint" style="margin-top:10px">One tap — no password needed. New accounts are created automatically.</p>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;margin:16px 0">
+        <div style="flex:1;height:1px;background:var(--line)"></div>
+        <span style="font-size:12px;color:var(--muted);font-weight:600">or use password</span>
+        <div style="flex:1;height:1px;background:var(--line)"></div>
+      </div>
+
+      <div class="tabs">
+        <button type="button" class="on" id="tabLogin" onclick="showForm('login')">Sign in</button>
+        <button type="button" id="tabReg" onclick="showForm('register')">Create account</button>
+      </div>
+
+      <div id="loginForm">
+        <label>Username</label>
+        <input id="loginUser" autocomplete="username" placeholder="your username" />
+        <label>Password</label>
+        <input id="loginPass" type="password" autocomplete="current-password" placeholder="••••••••" />
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600;margin-bottom:12px;cursor:pointer">
+          <input type="checkbox" id="rememberMe" checked style="width:auto;margin:0" />
+          Remember me (stay signed in)
+        </label>
+        <button class="btn" id="loginBtn" onclick="doLogin()">Sign in</button>
+      </div>
+
+      <div id="regForm" style="display:none">
+        <label>Username</label>
+        <input id="regUser" autocomplete="username" placeholder="at least 3 characters" />
+        <label>Email</label>
+        <input id="regEmail" type="email" autocomplete="email" placeholder="you@email.com" />
+        <label>Password</label>
+        <input id="regPass" type="password" autocomplete="new-password" placeholder="at least 6 characters" />
+        <button class="btn" id="regBtn" onclick="doRegister()">Create account</button>
+      </div>
+
+      <p class="hint">Prefer Telegram? Use the button above — no Google account required.</p>
+    </div>
+  </div>
+
+  <div class="features">
+    <h2>Why Kairozen?</h2>
+    <div class="platforms">
+      <span>TikTok</span><span>Instagram</span><span>YouTube</span>
+      <span>Facebook</span><span>Telegram</span><span>Twitter / X</span><span>Spotify</span>
+    </div>
+    <div class="grid" style="margin-top:16px">
+      <div class="feat">
+        <div class="ico">📦</div>
+        <strong>Ready-made packages</strong>
+        <p>Full TikTok package (Followers, Likes, Views, Shares, Comments…) plus matching packages for every major platform.</p>
+      </div>
+      <div class="feat">
+        <div class="ico">⚡</div>
+        <strong>Fast delivery</strong>
+        <p>Orders start processing immediately. Demo mode auto-completes for testing; live provider for real delivery.</p>
+      </div>
+      <div class="feat">
+        <div class="ico">🔌</div>
+        <strong>Reseller API</strong>
+        <p>PerfectPanel-compatible API so you can resell our services from your own site or bot.</p>
+      </div>
+      <div class="feat">
+        <div class="ico">💰</div>
+        <strong>Cheap rates</strong>
+        <p>Transparent per-1k pricing. Add funds easily and only pay for what you order.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Kairozen SMM · Admin panel available at <a href="/admin">/admin</a>
+  </footer>
+
+  <script>
+    function showForm(which) {
+      document.getElementById("loginForm").style.display = which === "login" ? "block" : "none";
+      document.getElementById("regForm").style.display = which === "register" ? "block" : "none";
+      document.getElementById("tabLogin").classList.toggle("on", which === "login");
+      document.getElementById("tabReg").classList.toggle("on", which === "register");
+      document.getElementById("errBox").style.display = "none";
+    }
+
+    function showErr(msg) {
+      const el = document.getElementById("errBox");
+      el.textContent = msg;
+      el.style.display = "block";
+    }
+
+    async function api(path, body) {
+      const r = await fetch("/api/" + path, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!j.success) throw new Error(j.error || "Failed");
+      return j;
+    }
+
+    async function doLogin() {
+      const btn = document.getElementById("loginBtn");
+      btn.disabled = true;
+      try {
+        await api("login", {
+          username: document.getElementById("loginUser").value.trim(),
+          password: document.getElementById("loginPass").value,
+          remember: document.getElementById("rememberMe").checked,
+        });
+        location.href = "/dashboard";
+      } catch (e) {
+        showErr(e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function doRegister() {
+      const btn = document.getElementById("regBtn");
+      btn.disabled = true;
+      try {
+        await api("register", {
+          username: document.getElementById("regUser").value.trim(),
+          email: document.getElementById("regEmail").value.trim(),
+          password: document.getElementById("regPass").value,
+        });
+        location.href = "/dashboard";
+      } catch (e) {
+        showErr(e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById("loginPass").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+    document.getElementById("regPass").addEventListener("keydown", e => { if (e.key === "Enter") doRegister(); });
+
+    // Telegram Login Widget callback (must be global)
+    window.onTelegramAuth = async function (user) {
+      try {
+        await api("login/telegram", user);
+        location.href = "/dashboard";
+      } catch (e) {
+        showErr(e.message || "Telegram login failed");
+      }
+    };
+
+    async function loadTelegramWidget() {
+      const box = document.getElementById("tgWidget");
+      const loading = document.getElementById("tgLoading");
+      try {
+        const r = await fetch("/api/auth/telegram-config", { credentials: "same-origin" });
+        const j = await r.json();
+        if (!j.success || !j.enabled || !j.bot_username) {
+          if (loading) loading.textContent = "Telegram login not configured yet (set TELEGRAM_BOT_TOKEN + TELEGRAM_BOT_USERNAME).";
+          return;
+        }
+        if (loading) loading.remove();
+        const s = document.createElement("script");
+        s.async = true;
+        s.src = "https://telegram.org/js/telegram-widget.js?22";
+        s.setAttribute("data-telegram-login", j.bot_username);
+        s.setAttribute("data-size", "large");
+        s.setAttribute("data-radius", "12");
+        s.setAttribute("data-onauth", "onTelegramAuth(user)");
+        s.setAttribute("data-request-access", "write");
+        box.appendChild(s);
+      } catch (e) {
+        if (loading) loading.textContent = "Could not load Telegram login.";
+      }
+    }
+    loadTelegramWidget();
+
+    fetch("/api/me", { credentials: "same-origin" })
+      .then(r => r.json())
+      .then(j => { if (j.success) location.href = "/dashboard"; })
+      .catch(() => {});
+  </script>
+</body>
+</html>
